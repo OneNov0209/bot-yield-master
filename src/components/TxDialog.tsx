@@ -1,0 +1,268 @@
+import { CheckCircle2, ExternalLink, Loader2, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { formatEther, parseEther, type Address } from "viem";
+import {
+  useAccount,
+  useBalance,
+  useEstimateFeesPerGas,
+  useEstimateGas,
+  useSendTransaction,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { addEntry, getDailyUsage } from "@/lib/activity-ledger";
+import { explorerTx, NETWORK } from "@/lib/chain-config";
+import type { AgentStrategy } from "@/lib/agents";
+
+type Mode = "deposit" | "withdraw";
+type Step = "amount" | "preview" | "signing" | "done";
+
+const ESTIMATED_APY: Record<AgentStrategy["risk"], number> = {
+  Low: 6.5,
+  Medium: 14.2,
+  High: 23.8,
+};
+
+export function TxDialog({
+  agent,
+  mode,
+  maxAmount,
+  onClose,
+}: {
+  agent: AgentStrategy;
+  mode: Mode;
+  maxAmount?: number;
+  onClose: () => void;
+}) {
+  const { address } = useAccount();
+  const [step, setStep] = useState<Step>("amount");
+  const [amount, setAmount] = useState("");
+  const { data: balance } = useBalance({ address });
+  const usage = getDailyUsage(address);
+
+  const vault = agent.vault as Address | undefined;
+  const value = useMemo(() => {
+    try {
+      return amount ? parseEther(amount) : undefined;
+    } catch {
+      return undefined;
+    }
+  }, [amount]);
+
+  const { data: gasLimit } = useEstimateGas({
+    to: vault,
+    value,
+    query: { enabled: step === "preview" && !!vault && !!value },
+  });
+  const { data: fees } = useEstimateFeesPerGas({ query: { enabled: step === "preview" } });
+
+  const gasPrice = fees?.maxFeePerGas ?? fees?.gasPrice;
+  const gasCost = gasLimit && gasPrice ? gasLimit * gasPrice : undefined;
+
+  const { sendTransaction, data: hash, isPending, error } = useSendTransaction();
+  const { data: receipt, isLoading: confirming } = useWaitForTransactionReceipt({ hash });
+
+  useEffect(() => {
+    if (receipt?.status === "success" && hash && address && amount) {
+      addEntry({
+        hash,
+        type: mode,
+        agentId: agent.id,
+        amount,
+        address,
+        chainId: NETWORK.id,
+        timestamp: Date.now(),
+      });
+      setStep("done");
+    }
+  }, [receipt, hash, address, amount, mode, agent.id]);
+
+  const numeric = Number(amount);
+  const overBalance =
+    mode === "deposit"
+      ? balance
+        ? numeric > Number(formatEther(balance.value))
+        : false
+      : numeric > (maxAmount ?? 0);
+  const validAmount = numeric > 0 && !overBalance && !!value;
+
+  const estYearly = validAmount ? (numeric * ESTIMATED_APY[agent.risk]) / 100 : 0;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+      <div className="panel glow w-full max-w-md p-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="font-display text-xs tracking-widest text-neon">
+              {mode === "deposit" ? "DEPOSIT" : "WITHDRAW"}
+            </p>
+            <h3 className="mt-1 text-lg">{agent.name}</h3>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="text-muted-foreground">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {!vault && (
+          <p className="mt-4 rounded-lg border border-warning/40 bg-surface p-3 text-xs text-muted-foreground">
+            This agent has no vault contract configured for the current deployment, so transactions
+            are disabled. Set the vault address in the environment configuration to enable it.
+          </p>
+        )}
+
+        {usage.blocked && (
+          <p className="mt-4 rounded-lg border border-destructive/40 bg-surface p-3 text-xs text-muted-foreground">
+            Daily limit reached: {usage.limit} interactions per address per day. Try again tomorrow.
+          </p>
+        )}
+
+        {step === "amount" && (
+          <div className="mt-5 space-y-4">
+            <label className="block text-xs uppercase tracking-widest text-muted-foreground">
+              Amount ({NETWORK.symbol})
+            </label>
+            <input
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              placeholder="0.0"
+              className="w-full rounded-lg border border-input bg-surface px-3 py-3 font-display text-lg outline-none focus:border-primary"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>
+                {mode === "deposit"
+                  ? `Wallet: ${balance ? Number(formatEther(balance.value)).toFixed(4) : "0.0000"} ${NETWORK.symbol}`
+                  : `Position: ${(maxAmount ?? 0).toFixed(4)} ${NETWORK.symbol}`}
+              </span>
+              <span>
+                Daily usage {usage.used}/{usage.limit}
+              </span>
+            </div>
+            {overBalance && <p className="text-xs text-destructive">Amount exceeds available.</p>}
+            <button
+              disabled={!validAmount || !vault || usage.blocked}
+              onClick={() => setStep("preview")}
+              className="w-full rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            >
+              Simulate transaction
+            </button>
+          </div>
+        )}
+
+        {step === "preview" && (
+          <div className="mt-5 space-y-3 text-sm">
+            <Row label="Action" value={`${mode === "deposit" ? "Deposit to" : "Withdraw from"} vault`} />
+            <Row label="Amount" value={`${numeric} ${NETWORK.symbol}`} />
+            <Row
+              label="Vault"
+              value={`${vault?.slice(0, 6)}…${vault?.slice(-4)}`}
+            />
+            <Row label="Network" value={`${NETWORK.name} · ${NETWORK.id}`} />
+            <Row label="Gas limit" value={gasLimit ? gasLimit.toString() : "estimating…"} />
+            <Row
+              label="Est. network fee"
+              value={
+                gasCost
+                  ? `${Number(formatEther(gasCost)).toFixed(6)} ${NETWORK.symbol}`
+                  : "estimating…"
+              }
+            />
+            <Row
+              label="Est. ROI (1y)"
+              value={`+${estYearly.toFixed(4)} ${NETWORK.symbol} @ ${ESTIMATED_APY[agent.risk]}% target APY`}
+            />
+            {error && <p className="text-xs text-destructive">{error.message.slice(0, 160)}</p>}
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setStep("amount")}
+                className="flex-1 rounded-lg border border-border py-3 text-sm"
+              >
+                Back
+              </button>
+              <button
+                disabled={!vault || !value || isPending}
+                onClick={() => {
+                  setStep("signing");
+                  sendTransaction({ to: vault!, value: value! });
+                }}
+                className="flex-1 rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground disabled:opacity-50"
+              >
+                Sign & send
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === "signing" && (
+          <div className="mt-8 space-y-3 text-center">
+            <Loader2 className="mx-auto h-7 w-7 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">
+              {isPending
+                ? "Confirm the transaction in your wallet…"
+                : confirming
+                  ? "Waiting for block confirmation…"
+                  : error
+                    ? "Transaction rejected."
+                    : "Broadcasting…"}
+            </p>
+            {hash && (
+              <a
+                href={explorerTx(hash)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                View on explorer <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            {error && (
+              <button
+                onClick={() => setStep("preview")}
+                className="mt-2 rounded-lg border border-border px-4 py-2 text-sm"
+              >
+                Back
+              </button>
+            )}
+          </div>
+        )}
+
+        {step === "done" && (
+          <div className="mt-8 space-y-3 text-center">
+            <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
+            <p className="font-display text-sm">
+              {mode === "deposit" ? "Agent is now Active" : "Withdrawal confirmed"}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {numeric} {NETWORK.symbol} {mode === "deposit" ? "deposited to" : "withdrawn from"}{" "}
+              {agent.name}.
+            </p>
+            {hash && (
+              <a
+                href={explorerTx(hash)}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+              >
+                View on explorer <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            <button
+              onClick={onClose}
+              className="mt-3 w-full rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground"
+            >
+              Done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-2">
+      <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="text-right text-sm">{value}</span>
+    </div>
+  );
+}
