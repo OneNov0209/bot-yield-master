@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAgentsRouteImport } from './routes/app.agents'
+import { Route as AppTransactionsRouteImport } from './routes/app.transactions'
 import { Route as AppVaultsRouteImport } from './routes/app.vaults'
 
 const IndexRoute = IndexRouteImport.update({
@@ -35,6 +36,11 @@ const AppAgentsRoute = AppAgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => AppRoute,
 } as any)
+const AppTransactionsRoute = AppTransactionsRouteImport.update({
+  id: '/transactions',
+  path: '/transactions',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppVaultsRoute = AppVaultsRouteImport.update({
   id: '/vaults',
   path: '/vaults',
@@ -45,12 +51,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/agents': typeof AppAgentsRoute
+  '/app/transactions': typeof AppTransactionsRoute
   '/app/vaults': typeof AppVaultsRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app/agents': typeof AppAgentsRoute
+  '/app/transactions': typeof AppTransactionsRoute
   '/app/vaults': typeof AppVaultsRoute
   '/app': typeof AppIndexRoute
 }
@@ -59,15 +67,24 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/agents': typeof AppAgentsRoute
+  '/app/transactions': typeof AppTransactionsRoute
   '/app/vaults': typeof AppVaultsRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/app/agents' | '/app/vaults' | '/app/'
+  fullPaths:
+    '/' | '/app' | '/app/agents' | '/app/transactions' | '/app/vaults' | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app/agents' | '/app/vaults' | '/app'
-  id: '__root__' | '/' | '/app' | '/app/agents' | '/app/vaults' | '/app/'
+  to: '/' | '/app/agents' | '/app/transactions' | '/app/vaults' | '/app'
+  id:
+    | '__root__'
+    | '/'
+    | '/app'
+    | '/app/agents'
+    | '/app/transactions'
+    | '/app/vaults'
+    | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -105,6 +122,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAgentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/transactions': {
+      id: '/app/transactions'
+      path: '/transactions'
+      fullPath: '/app/transactions'
+      preLoaderRoute: typeof AppTransactionsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/vaults': {
       id: '/app/vaults'
       path: '/vaults'
@@ -117,12 +141,14 @@ declare module '@tanstack/react-router' {
 
 interface AppRouteChildren {
   AppAgentsRoute: typeof AppAgentsRoute
+  AppTransactionsRoute: typeof AppTransactionsRoute
   AppVaultsRoute: typeof AppVaultsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAgentsRoute: AppAgentsRoute,
+  AppTransactionsRoute: AppTransactionsRoute,
   AppVaultsRoute: AppVaultsRoute,
   AppIndexRoute: AppIndexRoute,
 }

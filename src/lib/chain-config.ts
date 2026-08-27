@@ -6,8 +6,10 @@ import { defineChain } from "viem";
  */
 export type NetworkKey = "testnet" | "mainnet";
 
+const viteEnv = import.meta.env as Record<string, string | undefined>;
+
 export const ACTIVE_NETWORK: NetworkKey =
-  (import.meta.env.VITE_BOT_NETWORK as NetworkKey | undefined) ?? "testnet";
+  (viteEnv["VITE_BOT_NETWORK"] as NetworkKey | undefined) ?? "testnet";
 
 export const NETWORKS = {
   testnet: {
