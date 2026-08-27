@@ -35,7 +35,7 @@ export const NETWORK = NETWORKS[ACTIVE_NETWORK];
 const net = NETWORK;
 
 export const botChain = defineChain({
-  id: net.id,
+  id: net.id as number,
   name: net.name,
   nativeCurrency: { name: net.symbol, symbol: net.symbol, decimals: 18 },
   rpcUrls: { default: { http: [net.rpcUrl] } },
