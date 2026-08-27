@@ -56,7 +56,13 @@ function Dashboard() {
           icon={Layers}
           label="Protocol TVL"
           value={
-            configured ? `${tvl.toFixed(4)} ${NETWORK.symbol}` : "No vaults configured"
+            !configured
+              ? "No vaults configured"
+              : tvlError
+                ? "RPC unavailable"
+                : tvlLoading
+                  ? "Loading…"
+                  : `${tvl.toFixed(4)} ${NETWORK.symbol}`
           }
           hint="Sum of on-chain vault balances"
         />
