@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Activity, Coins, Layers, ShieldCheck } from "lucide-react";
 import { formatEther } from "viem";
 import {
