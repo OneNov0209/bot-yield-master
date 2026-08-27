@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { Activity, Coins, Layers, ShieldCheck } from "lucide-react";
 import { formatEther } from "viem";
 import {
@@ -30,8 +31,11 @@ function Dashboard() {
   const { data: balance } = useBalance({ address });
   const { data: blockNumber } = useBlockNumber({ watch: true });
   const { entries, usage, positionFor } = useLedger();
-  const flow = useMonthlyFlow(entries);
-  const { tvl, configured } = useVaultTvl();
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+  const filtered =
+    agentFilter === "all" ? entries : entries.filter((e) => e.agentId === agentFilter);
+  const flow = useMonthlyFlow(filtered);
+  const { tvl, configured, isLoading: tvlLoading, error: tvlError } = useVaultTvl();
 
   const activeAgents = AGENTS.filter((a) => positionFor(a.id).active).length;
   const myDeposited = AGENTS.reduce((sum, a) => sum + positionFor(a.id).net, 0);
@@ -52,7 +56,13 @@ function Dashboard() {
           icon={Layers}
           label="Protocol TVL"
           value={
-            configured ? `${tvl.toFixed(4)} ${NETWORK.symbol}` : "No vaults configured"
+            !configured
+              ? "No vaults configured"
+              : tvlError
+                ? "RPC unavailable"
+                : tvlLoading
+                  ? "Loading…"
+                  : `${tvl.toFixed(4)} ${NETWORK.symbol}`
           }
           hint="Sum of on-chain vault balances"
         />
@@ -77,11 +87,26 @@ function Dashboard() {
       </div>
 
       <div className="panel p-5">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg">Monthly Net Flow</h2>
-          <span className="text-xs text-muted-foreground">
-            Derived from confirmed transactions
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg">Monthly Performance</h2>
+            <span className="text-xs text-muted-foreground">
+              Net flow derived from confirmed on-chain transactions
+            </span>
+          </div>
+          <select
+            aria-label="Select AI agent"
+            value={agentFilter}
+            onChange={(e) => setAgentFilter(e.target.value)}
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-primary"
+          >
+            <option value="all">All agents</option>
+            {AGENTS.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="mt-4 h-72">
           {flow.length === 0 ? (

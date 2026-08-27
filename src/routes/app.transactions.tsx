@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
+import { useState } from "react";
 import { NetworkGuard } from "@/components/NetworkGuard";
+import { TxDetailsDrawer } from "@/components/TxDetailsDrawer";
 import { getAgent } from "@/lib/agents";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { useLedger } from "@/hooks/useLedger";
+import type { LedgerEntry } from "@/lib/activity-ledger";
 
 export const Route = createFileRoute("/app/transactions")({
   head: () => ({
@@ -12,12 +15,12 @@ export const Route = createFileRoute("/app/transactions")({
       {
         name: "description",
         content:
-          "Confirmed deposits and withdrawals for your wallet, each linked to the BOT Chain block explorer.",
+          "Confirmed deposits and withdrawals for your wallet, with gas used, decoded method and BOT Chain explorer links.",
       },
       { property: "og:title", content: "Transaction History — BOT AI Agent" },
       {
         property: "og:description",
-        content: "Every confirmed agent deposit and withdrawal with explorer links.",
+        content: "Every confirmed agent deposit and withdrawal with on-chain details.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -32,6 +35,7 @@ export const Route = createFileRoute("/app/transactions")({
 
 function Transactions() {
   const { entries, usage } = useLedger();
+  const [selected, setSelected] = useState<LedgerEntry | null>(null);
 
   return (
     <div className="space-y-6">
@@ -58,6 +62,7 @@ function Transactions() {
                 <th className="px-4 py-3">Agent</th>
                 <th className="px-4 py-3">Amount</th>
                 <th className="px-4 py-3">Tx</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
@@ -93,12 +98,22 @@ function Transactions() {
                         {e.hash.slice(0, 8)}… <ExternalLink className="h-3 w-3" />
                       </a>
                     </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => setSelected(e)}
+                        className="rounded-lg border border-border px-3 py-1.5 text-xs hover:border-primary hover:text-primary"
+                      >
+                        Details
+                      </button>
+                    </td>
                   </tr>
                 ))}
             </tbody>
           </table>
         )}
       </div>
+
+      {selected && <TxDetailsDrawer entry={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

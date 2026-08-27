@@ -1,19 +1,35 @@
 import { defineChain } from "viem";
+import { envVar } from "./env";
 
 /**
  * Central network configuration.
- * Switch `ACTIVE_NETWORK` to "mainnet" when BOT Chain mainnet (chainId 677) is live.
+ * Switch `ACTIVE_NETWORK` (or VITE_BOT_NETWORK) to "mainnet" when BOT Chain
+ * mainnet (chainId 677) is live.
  */
 export type NetworkKey = "testnet" | "mainnet";
 
-const viteEnv = import.meta.env as Record<string, string | undefined>;
+/** Supported chain IDs — the single source of truth for chain-id typing. */
+export const CHAIN_IDS = { testnet: 968, mainnet: 677 } as const;
+export type SupportedChainId = (typeof CHAIN_IDS)[NetworkKey];
 
-export const ACTIVE_NETWORK: NetworkKey =
-  (viteEnv["VITE_BOT_NETWORK"] as NetworkKey | undefined) ?? "testnet";
+const isNetworkKey = (value: string | undefined): value is NetworkKey =>
+  value === "testnet" || value === "mainnet";
 
-export const NETWORKS = {
+const requested = envVar("VITE_BOT_NETWORK");
+export const ACTIVE_NETWORK: NetworkKey = isNetworkKey(requested) ? requested : "testnet";
+
+type NetworkConfig = {
+  id: SupportedChainId;
+  name: string;
+  shortName: string;
+  rpcUrl: string;
+  explorerUrl: string;
+  symbol: string;
+};
+
+export const NETWORKS: Record<NetworkKey, NetworkConfig> = {
   testnet: {
-    id: 968,
+    id: CHAIN_IDS.testnet,
     name: "BOT Chain Testnet (Bohr)",
     shortName: "Bohr Testnet",
     rpcUrl: "https://rpc.bohr.life",
@@ -21,21 +37,21 @@ export const NETWORKS = {
     symbol: "tBOT",
   },
   mainnet: {
-    id: 677,
+    id: CHAIN_IDS.mainnet,
     name: "BOT Chain",
     shortName: "BOT Mainnet",
     rpcUrl: "https://rpc.bohr.life",
     explorerUrl: "https://scan.bohr.life",
     symbol: "BOT",
   },
-} as const;
+};
 
 export const NETWORK = NETWORKS[ACTIVE_NETWORK];
 
 const net = NETWORK;
 
 export const botChain = defineChain({
-  id: net.id as number,
+  id: net.id,
   name: net.name,
   nativeCurrency: { name: net.symbol, symbol: net.symbol, decimals: 18 },
   rpcUrls: { default: { http: [net.rpcUrl] } },
@@ -48,8 +64,7 @@ export const explorerAddress = (address: string) => `${net.explorerUrl}/address/
 
 /** WalletConnect Cloud projectId (publishable value, safe in the client bundle). */
 export const WALLETCONNECT_PROJECT_ID =
-  viteEnv["VITE_WALLETCONNECT_PROJECT_ID"] ??
-  "3fcc6bba6f1de962d911bb5b5c3dba68";
+  envVar("VITE_WALLETCONNECT_PROJECT_ID") ?? "7f5230a2da0f45798f150d028660356f";
 
 /** Community anti-abuse rule: max on-chain interactions per address per day. */
 export const DAILY_INTERACTION_LIMIT = 20;
