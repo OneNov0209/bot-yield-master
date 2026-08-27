@@ -87,11 +87,26 @@ function Dashboard() {
       </div>
 
       <div className="panel p-5">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg">Monthly Net Flow</h2>
-          <span className="text-xs text-muted-foreground">
-            Derived from confirmed transactions
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg">Monthly Performance</h2>
+            <span className="text-xs text-muted-foreground">
+              Net flow derived from confirmed on-chain transactions
+            </span>
+          </div>
+          <select
+            aria-label="Select AI agent"
+            value={agentFilter}
+            onChange={(e) => setAgentFilter(e.target.value)}
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-primary"
+          >
+            <option value="all">All agents</option>
+            {AGENTS.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="mt-4 h-72">
           {flow.length === 0 ? (
