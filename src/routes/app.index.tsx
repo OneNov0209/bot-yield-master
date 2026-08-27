@@ -30,8 +30,11 @@ function Dashboard() {
   const { data: balance } = useBalance({ address });
   const { data: blockNumber } = useBlockNumber({ watch: true });
   const { entries, usage, positionFor } = useLedger();
-  const flow = useMonthlyFlow(entries);
-  const { tvl, configured } = useVaultTvl();
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+  const filtered =
+    agentFilter === "all" ? entries : entries.filter((e) => e.agentId === agentFilter);
+  const flow = useMonthlyFlow(filtered);
+  const { tvl, configured, isLoading: tvlLoading, error: tvlError } = useVaultTvl();
 
   const activeAgents = AGENTS.filter((a) => positionFor(a.id).active).length;
   const myDeposited = AGENTS.reduce((sum, a) => sum + positionFor(a.id).net, 0);
