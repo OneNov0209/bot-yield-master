@@ -33,8 +33,11 @@ export function createWagmiConfig() {
 
   return createConfig({
     connectors,
-    chains: [botChain],
-    transports: { [botChain.id]: http(NETWORK.rpcUrl) },
+    chains: [botChain] as const,
+    transports: {
+      [CHAIN_IDS.testnet]: http(NETWORKS.testnet.rpcUrl),
+      [CHAIN_IDS.mainnet]: http(NETWORKS.mainnet.rpcUrl),
+    },
     ssr: true,
   });
 }
