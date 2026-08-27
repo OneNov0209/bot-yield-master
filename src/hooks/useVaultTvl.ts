@@ -25,7 +25,7 @@ export function useVaultTvl() {
 }
 
 /** Per-vault native balance for the Vaults page. */
-export function useVaultBalance(address?: `0x${string}`) {
+export function useVaultBalance(address?: `0x${string}` | undefined) {
   const { data, isLoading } = useBalance({ address, query: { enabled: !!address } });
   return { balance: data ? Number(formatEther(data.value)) : 0, isLoading };
 }

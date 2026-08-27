@@ -62,7 +62,7 @@ function VaultRow({
 }: {
   agentId: string;
   name: string;
-  vault?: `0x${string}`;
+  vault?: `0x${string}` | undefined;
 }) {
   const { balance } = useVaultBalance(vault);
   const { positionFor } = useLedger();
