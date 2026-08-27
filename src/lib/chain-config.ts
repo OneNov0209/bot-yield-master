@@ -48,7 +48,7 @@ export const explorerAddress = (address: string) => `${net.explorerUrl}/address/
 
 /** WalletConnect Cloud projectId (publishable value, safe in the client bundle). */
 export const WALLETCONNECT_PROJECT_ID =
-  (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string | undefined) ??
+  viteEnv["VITE_WALLETCONNECT_PROJECT_ID"] ??
   "3fcc6bba6f1de962d911bb5b5c3dba68";
 
 /** Community anti-abuse rule: max on-chain interactions per address per day. */
