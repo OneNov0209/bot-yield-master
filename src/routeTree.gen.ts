@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAgentsRouteImport } from './routes/app.agents'
+import { Route as AppVaultsRouteImport } from './routes/app.vaults'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -34,16 +35,23 @@ const AppAgentsRoute = AppAgentsRouteImport.update({
   path: '/agents',
   getParentRoute: () => AppRoute,
 } as any)
+const AppVaultsRoute = AppVaultsRouteImport.update({
+  id: '/vaults',
+  path: '/vaults',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/agents': typeof AppAgentsRoute
+  '/app/vaults': typeof AppVaultsRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app/agents': typeof AppAgentsRoute
+  '/app/vaults': typeof AppVaultsRoute
   '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
@@ -51,14 +59,15 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/app/agents': typeof AppAgentsRoute
+  '/app/vaults': typeof AppVaultsRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/app' | '/app/agents' | '/app/'
+  fullPaths: '/' | '/app' | '/app/agents' | '/app/vaults' | '/app/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/app/agents' | '/app'
-  id: '__root__' | '/' | '/app' | '/app/agents' | '/app/'
+  to: '/' | '/app/agents' | '/app/vaults' | '/app'
+  id: '__root__' | '/' | '/app' | '/app/agents' | '/app/vaults' | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -96,16 +105,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAgentsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/vaults': {
+      id: '/app/vaults'
+      path: '/vaults'
+      fullPath: '/app/vaults'
+      preLoaderRoute: typeof AppVaultsRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
   AppAgentsRoute: typeof AppAgentsRoute
+  AppVaultsRoute: typeof AppVaultsRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
   AppAgentsRoute: AppAgentsRoute,
+  AppVaultsRoute: AppVaultsRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
