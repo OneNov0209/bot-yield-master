@@ -10,7 +10,7 @@ export type AgentStrategy = {
    * Vault contract that receives deposits. Provided per-deployment through env so no
    * address is hardcoded to a live treasury by mistake. Deposits stay disabled while unset.
    */
-  vault?: Address;
+  vault?: Address | undefined;
 };
 
 const env = import.meta.env as Record<string, string | undefined>;
@@ -26,7 +26,7 @@ export const AGENTS: AgentStrategy[] = [
     description:
       "The agent monitors pool depth and emissions every block, then routes capital to the highest risk-adjusted yield available on BOT Chain.",
     risk: "Medium",
-    vault: addr(env.VITE_VAULT_YIELDS_AGGREGATOR),
+    vault: addr(env['VITE_VAULT_YIELDS_AGGREGATOR']),
   },
   {
     id: "stable-lp-hunter",
@@ -35,7 +35,7 @@ export const AGENTS: AgentStrategy[] = [
     description:
       "Targets stable-to-stable liquidity pairs only. Impermanent loss stays minimal while fees compound on an hourly cadence.",
     risk: "Low",
-    vault: addr(env.VITE_VAULT_STABLE_LP_HUNTER),
+    vault: addr(env['VITE_VAULT_STABLE_LP_HUNTER']),
   },
   {
     id: "delta-neutral-bot",
@@ -44,7 +44,7 @@ export const AGENTS: AgentStrategy[] = [
     description:
       "Pairs spot liquidity with short perpetual exposure so the position stays delta neutral while harvesting funding and farm rewards.",
     risk: "High",
-    vault: addr(env.VITE_VAULT_DELTA_NEUTRAL),
+    vault: addr(env['VITE_VAULT_DELTA_NEUTRAL']),
   },
 ];
 

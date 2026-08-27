@@ -6,8 +6,10 @@ import { defineChain } from "viem";
  */
 export type NetworkKey = "testnet" | "mainnet";
 
+const viteEnv = import.meta.env as Record<string, string | undefined>;
+
 export const ACTIVE_NETWORK: NetworkKey =
-  (import.meta.env.VITE_BOT_NETWORK as NetworkKey | undefined) ?? "testnet";
+  (viteEnv["VITE_BOT_NETWORK"] as NetworkKey | undefined) ?? "testnet";
 
 export const NETWORKS = {
   testnet: {
@@ -33,7 +35,7 @@ export const NETWORK = NETWORKS[ACTIVE_NETWORK];
 const net = NETWORK;
 
 export const botChain = defineChain({
-  id: net.id,
+  id: net.id as number,
   name: net.name,
   nativeCurrency: { name: net.symbol, symbol: net.symbol, decimals: 18 },
   rpcUrls: { default: { http: [net.rpcUrl] } },
@@ -46,7 +48,7 @@ export const explorerAddress = (address: string) => `${net.explorerUrl}/address/
 
 /** WalletConnect Cloud projectId (publishable value, safe in the client bundle). */
 export const WALLETCONNECT_PROJECT_ID =
-  (import.meta.env.VITE_WALLETCONNECT_PROJECT_ID as string | undefined) ??
+  viteEnv["VITE_WALLETCONNECT_PROJECT_ID"] ??
   "3fcc6bba6f1de962d911bb5b5c3dba68";
 
 /** Community anti-abuse rule: max on-chain interactions per address per day. */
