@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { formatEther } from "viem";
 import { useBalance } from "wagmi";
 import { AGENTS, VAULT_ADDRESSES } from "@/lib/agents";
 import { botChain } from "@/lib/chain-config";
+import { LEDGER_EVENT } from "@/lib/activity-ledger";
 
 type VaultReading = {
   agentId: string;
@@ -50,6 +52,14 @@ export function useVaultBalance(address?: `0x${string}` | undefined) {
     chainId: botChain.id,
     query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
   });
+
+  // Auto-refetch as soon as a deposit/withdraw is confirmed, so TVL and ROI
+  // cards update without a page refresh.
+  useEffect(() => {
+    const onLedger = () => void refetch();
+    window.addEventListener(LEDGER_EVENT, onLedger);
+    return () => window.removeEventListener(LEDGER_EVENT, onLedger);
+  }, [refetch]);
 
   return {
     balance: data ? Number(formatEther(data.value)) : 0,
