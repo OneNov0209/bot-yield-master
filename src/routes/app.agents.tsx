@@ -33,7 +33,7 @@ export const Route = createFileRoute("/app/agents")({
 });
 
 function Agents() {
-  const { positionFor } = useLedger();
+  const { positionFor, refresh } = useLedger();
   const [dialog, setDialog] = useState<{
     agent: AgentStrategy;
     mode: "deposit" | "withdraw";
@@ -106,7 +106,10 @@ function Agents() {
           agent={dialog.agent}
           mode={dialog.mode}
           maxAmount={positionFor(dialog.agent.id).net}
-          onClose={() => setDialog(null)}
+          onClose={() => {
+            setDialog(null);
+            refresh();
+          }}
         />
       )}
     </div>
