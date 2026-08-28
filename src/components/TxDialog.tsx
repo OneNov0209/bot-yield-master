@@ -11,16 +11,10 @@ import {
 } from "wagmi";
 import { addEntry, getDailyUsage } from "@/lib/activity-ledger";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
-import type { AgentStrategy } from "@/lib/agents";
+import { AGENT_TARGET_APY as ESTIMATED_APY, type AgentStrategy } from "@/lib/agents";
 
 type Mode = "deposit" | "withdraw";
 type Step = "amount" | "preview" | "signing" | "done";
-
-const ESTIMATED_APY: Record<AgentStrategy["risk"], number> = {
-  Low: 6.5,
-  Medium: 14.2,
-  High: 23.8,
-};
 
 export function TxDialog({
   agent,

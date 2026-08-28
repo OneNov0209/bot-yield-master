@@ -48,5 +48,12 @@ export const AGENTS: AgentStrategy[] = [
   },
 ];
 
+/** Target APY per risk band, used for ROI projections shown in the UI. */
+export const AGENT_TARGET_APY: Record<AgentStrategy["risk"], number> = {
+  Low: 6.5,
+  Medium: 14.2,
+  High: 23.8,
+};
+
 export const getAgent = (id: string) => AGENTS.find((a) => a.id === id);
 export const VAULT_ADDRESSES = AGENTS.map((a) => a.vault).filter(Boolean) as Address[];

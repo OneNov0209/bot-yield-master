@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { NetworkGuard } from "@/components/NetworkGuard";
+import { RoiEstimate } from "@/components/RoiEstimate";
 import { TxDialog } from "@/components/TxDialog";
 import { AGENTS, type AgentStrategy } from "@/lib/agents";
 import { NETWORK } from "@/lib/chain-config";
@@ -32,7 +33,7 @@ export const Route = createFileRoute("/app/agents")({
 });
 
 function Agents() {
-  const { positionFor } = useLedger();
+  const { positionFor, refresh } = useLedger();
   const [dialog, setDialog] = useState<{
     agent: AgentStrategy;
     mode: "deposit" | "withdraw";
@@ -93,6 +94,8 @@ function Agents() {
                   Withdraw
                 </button>
               </div>
+
+              <RoiEstimate agent={agent} position={pos.net} active={pos.active} />
             </div>
           );
         })}
@@ -103,7 +106,10 @@ function Agents() {
           agent={dialog.agent}
           mode={dialog.mode}
           maxAmount={positionFor(dialog.agent.id).net}
-          onClose={() => setDialog(null)}
+          onClose={() => {
+            setDialog(null);
+            refresh();
+          }}
         />
       )}
     </div>
