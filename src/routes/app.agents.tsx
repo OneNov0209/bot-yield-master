@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { NetworkGuard } from "@/components/NetworkGuard";
+import { RoiEstimate } from "@/components/RoiEstimate";
 import { TxDialog } from "@/components/TxDialog";
 import { AGENTS, type AgentStrategy } from "@/lib/agents";
 import { NETWORK } from "@/lib/chain-config";
@@ -93,6 +94,8 @@ function Agents() {
                   Withdraw
                 </button>
               </div>
+
+              <RoiEstimate agent={agent} position={pos.net} active={pos.active} />
             </div>
           );
         })}
