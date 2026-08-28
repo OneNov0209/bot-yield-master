@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { AppShell } from "@/components/AppShell";
+import { ConfigBanner } from "@/components/ConfigBanner";
 
 const Web3Provider = lazy(() => import("@/components/Web3Provider"));
 
@@ -39,6 +40,7 @@ function AppLayout() {
       <Suspense fallback={<Booting />}>
         <Web3Provider>
           <AppShell>
+            <ConfigBanner />
             <Outlet />
           </AppShell>
         </Web3Provider>
