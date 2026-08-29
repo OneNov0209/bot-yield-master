@@ -103,11 +103,19 @@ export function TxDialog({
           </p>
         )}
 
-        {usage.blocked && (
+        {usage.blocked ? (
           <p className="mt-4 rounded-lg border border-destructive/40 bg-surface p-3 text-xs text-muted-foreground">
             Daily limit reached: {usage.limit} interactions per address per day. Try again tomorrow.
           </p>
+        ) : (
+          usage.remaining <= 5 && (
+            <p className="mt-4 rounded-lg border border-warning/40 bg-surface p-3 text-xs text-muted-foreground">
+              Fair-use warning: only {usage.remaining} of {usage.limit} daily interactions left for
+              this address.
+            </p>
+          )
         )}
+
 
         {step === "amount" && (
           <div className="mt-5 space-y-4">
