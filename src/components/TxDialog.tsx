@@ -237,6 +237,8 @@ export function TxDialog({
               {numeric} {NETWORK.symbol} {mode === "deposit" ? "deposited to" : "withdrawn from"}{" "}
               {agent.name}.
             </p>
+            <RoiBreakdown agent={agent} onChainDelta={numeric} mode={mode} />
+
             {hash && (
               <a
                 href={explorerTx(hash)}
