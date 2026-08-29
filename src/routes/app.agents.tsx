@@ -1,10 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { NetworkGuard } from "@/components/NetworkGuard";
 import { RoiEstimate } from "@/components/RoiEstimate";
 import { TxDialog } from "@/components/TxDialog";
+import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
 import { AGENTS, type AgentStrategy } from "@/lib/agents";
 import { NETWORK } from "@/lib/chain-config";
+import { allocationByAgent, cumulativeSeries } from "@/lib/activity-metrics";
+import { validateVaultConfig } from "@/lib/config-validation";
 import { useLedger } from "@/hooks/useLedger";
 
 export const Route = createFileRoute("/app/agents")({
