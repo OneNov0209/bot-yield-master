@@ -32,7 +32,9 @@ export const Route = createFileRoute("/app/vaults")({
 
 function Vaults() {
   const { tvl, vaults, configured, isLoading, error } = useVaultTvl();
-  const { positionFor } = useLedger();
+  const { entries, positionFor } = useLedger();
+  const share = vaultShare(vaults.map((v) => ({ name: v.name, balance: v.balance })));
+  const series = cumulativeSeries(entries);
 
   return (
     <div className="space-y-6">
