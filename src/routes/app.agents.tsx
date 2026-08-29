@@ -50,6 +50,69 @@ function Agents() {
         </p>
       </div>
 
+      <div className="panel card-3d p-5">
+        <h2 className="text-lg">Vault availability</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Deposit and withdraw are only enabled for agents with a valid vault address.
+        </p>
+        <div className="mt-4 space-y-2">
+          {AGENTS.map((agent) => {
+            const issue = issues.find((i) => i.agent === agent.name);
+            return (
+              <div
+                key={agent.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-surface px-4 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="font-display text-sm">{agent.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {issue
+                      ? issue.reason === "missing"
+                        ? `${issue.key} is empty — set the deployed vault address to enable transactions.`
+                        : `${issue.key} is not a valid 20-byte address — fix the format to enable transactions.`
+                      : `Vault ${agent.vault?.slice(0, 10)}…${agent.vault?.slice(-8)}`}
+                  </p>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${
+                    issue
+                      ? "border border-destructive/50 text-destructive"
+                      : "border border-success/50 text-success"
+                  }`}
+                >
+                  {issue ? (
+                    <>
+                      <AlertTriangle className="h-3 w-3" /> Disabled
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-3 w-3" /> Enabled
+                    </>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame
+          title="Your allocation"
+          subtitle="Net position per agent from confirmed transactions"
+          empty={allocation.length === 0 ? "No positions yet — deposit to an agent." : undefined}
+        >
+          <SharePie data={allocation} />
+        </ChartFrame>
+        <ChartFrame
+          title="Position over time"
+          subtitle="Cumulative net balance across agents"
+          empty={series.length === 0 ? "No activity to plot yet." : undefined}
+        >
+          <ActivityLine data={series} label={NETWORK.symbol} />
+        </ChartFrame>
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-3">
         {AGENTS.map((agent) => {
           const pos = positionFor(agent.id);
