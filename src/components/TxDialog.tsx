@@ -12,6 +12,7 @@ import {
 import { addEntry, getDailyUsage } from "@/lib/activity-ledger";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { AGENT_TARGET_APY as ESTIMATED_APY, type AgentStrategy } from "@/lib/agents";
+import { useVaultBalance } from "@/hooks/useVaultTvl";
 
 type Mode = "deposit" | "withdraw";
 type Step = "amount" | "preview" | "signing" | "done";
@@ -267,6 +268,62 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-2">
       <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
       <span className="text-right text-sm">{value}</span>
+    </div>
+  );
+}
+
+/**
+ * ROI breakdown computed from the freshest on-chain vault balance after a
+ * confirmed deposit/withdraw, including the factors used in the projection.
+ */
+function RoiBreakdown({
+  agent,
+  onChainDelta,
+  mode,
+}: {
+  agent: AgentStrategy;
+  onChainDelta: number;
+  mode: Mode;
+}) {
+  const { balance, isLoading, error } = useVaultBalance(agent.vault);
+  const apy = ESTIMATED_APY[agent.risk];
+
+  if (isLoading) {
+    return (
+      <p className="flex items-center justify-center gap-2 rounded-lg border border-border bg-surface p-3 text-xs text-muted-foreground">
+        <Loader2 className="h-3 w-3 animate-spin text-primary" /> Reading updated vault balance…
+      </p>
+    );
+  }
+  if (error) {
+    return (
+      <p className="rounded-lg border border-destructive/40 bg-surface p-3 text-xs text-destructive">
+        Could not read updated vault balance — {error.message.slice(0, 80)}
+      </p>
+    );
+  }
+
+  const share = balance > 0 ? (onChainDelta / balance) * 100 : 0;
+  const monthly = (onChainDelta * (apy / 100)) / 12;
+  const yearly = onChainDelta * (apy / 100);
+
+  return (
+    <div className="rounded-lg border border-border bg-surface p-3 text-left">
+      <p className="text-[11px] uppercase tracking-widest text-muted-foreground">ROI breakdown</p>
+      <dl className="mt-2 space-y-1 text-[11px]">
+        <Row label="Vault TVL (live)" value={`${balance.toFixed(4)} ${NETWORK.symbol}`} />
+        <Row label="Target APY" value={`${apy}% (${agent.risk} risk band)`} />
+        <Row label="This tx share of TVL" value={`${share.toFixed(2)}%`} />
+        <Row
+          label="Projected monthly"
+          value={`${mode === "deposit" ? "+" : "-"}${monthly.toFixed(6)} ${NETWORK.symbol}`}
+        />
+        <Row
+          label="Projected yearly"
+          value={`${mode === "deposit" ? "+" : "-"}${yearly.toFixed(4)} ${NETWORK.symbol}`}
+        />
+        <Row label="Factors" value={`amount × APY ÷ period · compounding excluded`} />
+      </dl>
     </div>
   );
 }
