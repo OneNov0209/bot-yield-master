@@ -63,6 +63,31 @@ function Vaults() {
         </div>
       )}
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame
+          title="TVL share per vault"
+          subtitle="Live native balances read from BOT Chain"
+          empty={
+            !configured
+              ? "No vaults configured."
+              : isLoading
+                ? "Reading vault balances…"
+                : share.length === 0
+                  ? "Vaults are currently empty."
+                  : undefined
+          }
+        >
+          <SharePie data={share} />
+        </ChartFrame>
+        <ChartFrame
+          title="Your position over time"
+          subtitle="Cumulative net balance from confirmed transactions"
+          empty={series.length === 0 ? "No activity to plot yet." : undefined}
+        >
+          <ActivityLine data={series} label={NETWORK.symbol} />
+        </ChartFrame>
+      </div>
+
       <div className="space-y-3">
         {vaults.map((v) => {
           const pos = positionFor(v.agentId);
