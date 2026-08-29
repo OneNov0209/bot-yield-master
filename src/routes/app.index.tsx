@@ -86,7 +86,7 @@ function Dashboard() {
         />
       </div>
 
-      <div className="panel p-5">
+      <div className="panel card-3d p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg">Monthly Performance</h2>
@@ -148,7 +148,7 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="panel p-5">
+      <div className="panel card-3d p-5">
         <h2 className="text-lg">Agent Status</h2>
         <div className="mt-4 space-y-3">
           {AGENTS.map((agent) => {
@@ -197,7 +197,7 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <div className="panel neon-ring p-5 transition-all">
+    <div className="panel card-3d neon-ring p-5 transition-all">
       <div className="flex items-center justify-between">
         <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-primary" />

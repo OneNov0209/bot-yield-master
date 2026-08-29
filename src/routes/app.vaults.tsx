@@ -67,7 +67,7 @@ function Vaults() {
         {vaults.map((v) => {
           const pos = positionFor(v.agentId);
           return (
-            <div key={v.agentId} className="panel flex flex-wrap items-center justify-between gap-4 p-5">
+            <div key={v.agentId} className="panel card-3d flex flex-wrap items-center justify-between gap-4 p-5">
               <div className="min-w-0">
                 <p className="font-display text-sm">{v.name}</p>
                 {v.address ? (

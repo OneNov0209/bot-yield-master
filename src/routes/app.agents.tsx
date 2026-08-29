@@ -54,7 +54,7 @@ function Agents() {
         {AGENTS.map((agent) => {
           const pos = positionFor(agent.id);
           return (
-            <div key={agent.id} className="panel neon-ring flex flex-col p-5">
+            <div key={agent.id} className="panel card-3d neon-ring flex flex-col p-5">
               <div className="flex items-start justify-between gap-3">
                 <h2 className="text-lg">{agent.name}</h2>
                 <span className="rounded-full border border-border px-2 py-0.5 text-[11px] text-muted-foreground">

@@ -48,7 +48,7 @@ function Transactions() {
         </p>
       </div>
 
-      <div className="panel overflow-x-auto p-0">
+      <div className="panel card-3d overflow-x-auto p-0">
         {entries.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">
             No confirmed transactions yet for this wallet.

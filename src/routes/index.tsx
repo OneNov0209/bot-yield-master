@@ -97,7 +97,7 @@ function Landing() {
 
         <div className="mt-20 grid gap-4 text-left md:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, body }) => (
-            <div key={title} className="panel neon-ring p-5 transition-all">
+            <div key={title} className="panel card-3d neon-ring p-5 transition-all">
               <Icon className="h-5 w-5 text-primary" />
               <h3 className="mt-4 text-base">{title}</h3>
               <p className="mt-2 text-sm text-muted-foreground">{body}</p>
@@ -109,7 +109,7 @@ function Landing() {
           <h2 className="text-center text-2xl">Available Strategies</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {AGENTS.map((agent) => (
-              <div key={agent.id} className="panel p-5">
+              <div key={agent.id} className="panel card-3d p-5">
                 <p className="font-display text-sm text-neon">{agent.name}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{agent.tagline}</p>
                 <p className="mt-4 text-xs uppercase tracking-widest text-muted-foreground">
