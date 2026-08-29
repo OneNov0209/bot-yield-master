@@ -148,6 +148,30 @@ function Dashboard() {
         </div>
       </div>
 
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ChartFrame
+          title="Allocation by agent"
+          subtitle="Net position share from confirmed transactions"
+          empty={allocation.length === 0 ? "No positions yet." : undefined}
+        >
+          <SharePie data={allocation} />
+        </ChartFrame>
+        <ChartFrame
+          title="Deposit vs withdrawal"
+          subtitle="Signed volume split"
+          empty={split.length === 0 ? "No signed volume yet." : undefined}
+        >
+          <SharePie data={split} donut={false} />
+        </ChartFrame>
+        <ChartFrame
+          title="Cumulative position"
+          subtitle="Running net balance over time"
+          empty={series.length === 0 ? "No activity to plot yet." : undefined}
+        >
+          <ActivityLine data={series} label={NETWORK.symbol} />
+        </ChartFrame>
+      </div>
+
       <div className="panel card-3d p-5">
         <h2 className="text-lg">Agent Status</h2>
         <div className="mt-4 space-y-3">
