@@ -33,7 +33,10 @@ export const Route = createFileRoute("/app/agents")({
 });
 
 function Agents() {
-  const { positionFor, refresh } = useLedger();
+  const { entries, positionFor, refresh } = useLedger();
+  const issues = validateVaultConfig();
+  const allocation = allocationByAgent(entries);
+  const series = cumulativeSeries(entries);
   const [dialog, setDialog] = useState<{
     agent: AgentStrategy;
     mode: "deposit" | "withdraw";
