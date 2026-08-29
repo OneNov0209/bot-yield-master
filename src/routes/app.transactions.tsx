@@ -6,6 +6,8 @@ import { TxDetailsDrawer } from "@/components/TxDetailsDrawer";
 import { getAgent } from "@/lib/agents";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { useLedger } from "@/hooks/useLedger";
+import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
+import { cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 import type { LedgerEntry } from "@/lib/activity-ledger";
 
 export const Route = createFileRoute("/app/transactions")({
@@ -48,7 +50,24 @@ function Transactions() {
         </p>
       </div>
 
-      <div className="panel overflow-x-auto p-0">
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame
+          title="Activity trend"
+          subtitle="Cumulative net balance per confirmed transaction"
+          empty={entries.length === 0 ? "No transactions to plot yet." : undefined}
+        >
+          <ActivityLine data={cumulativeSeries(entries)} label={NETWORK.symbol} />
+        </ChartFrame>
+        <ChartFrame
+          title="Deposit vs withdrawal"
+          subtitle="Signed volume split"
+          empty={entries.length === 0 ? "No signed volume yet." : undefined}
+        >
+          <SharePie data={flowSplit(entries)} donut={false} />
+        </ChartFrame>
+      </div>
+
+      <div className="panel card-3d overflow-x-auto p-0">
         {entries.length === 0 ? (
           <p className="p-8 text-center text-sm text-muted-foreground">
             No confirmed transactions yet for this wallet.

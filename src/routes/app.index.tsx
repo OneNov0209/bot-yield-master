@@ -17,6 +17,8 @@ import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
 import { NETWORK } from "@/lib/chain-config";
 import { AGENTS } from "@/lib/agents";
 import { useVaultTvl } from "@/hooks/useVaultTvl";
+import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
+import { allocationByAgent, cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 
 export const Route = createFileRoute("/app/")({
   component: () => (
@@ -36,6 +38,9 @@ function Dashboard() {
     agentFilter === "all" ? entries : entries.filter((e) => e.agentId === agentFilter);
   const flow = useMonthlyFlow(filtered);
   const { tvl, configured, isLoading: tvlLoading, error: tvlError } = useVaultTvl();
+  const allocation = allocationByAgent(filtered);
+  const split = flowSplit(filtered);
+  const series = cumulativeSeries(filtered);
 
   const activeAgents = AGENTS.filter((a) => positionFor(a.id).active).length;
   const myDeposited = AGENTS.reduce((sum, a) => sum + positionFor(a.id).net, 0);
@@ -86,7 +91,7 @@ function Dashboard() {
         />
       </div>
 
-      <div className="panel p-5">
+      <div className="panel card-3d p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-lg">Monthly Performance</h2>
@@ -148,7 +153,31 @@ function Dashboard() {
         </div>
       </div>
 
-      <div className="panel p-5">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <ChartFrame
+          title="Allocation by agent"
+          subtitle="Net position share from confirmed transactions"
+          empty={allocation.length === 0 ? "No positions yet." : undefined}
+        >
+          <SharePie data={allocation} />
+        </ChartFrame>
+        <ChartFrame
+          title="Deposit vs withdrawal"
+          subtitle="Signed volume split"
+          empty={split.length === 0 ? "No signed volume yet." : undefined}
+        >
+          <SharePie data={split} donut={false} />
+        </ChartFrame>
+        <ChartFrame
+          title="Cumulative position"
+          subtitle="Running net balance over time"
+          empty={series.length === 0 ? "No activity to plot yet." : undefined}
+        >
+          <ActivityLine data={series} label={NETWORK.symbol} />
+        </ChartFrame>
+      </div>
+
+      <div className="panel card-3d p-5">
         <h2 className="text-lg">Agent Status</h2>
         <div className="mt-4 space-y-3">
           {AGENTS.map((agent) => {
@@ -197,7 +226,7 @@ function Stat({
   hint?: string;
 }) {
   return (
-    <div className="panel neon-ring p-5 transition-all">
+    <div className="panel card-3d neon-ring p-5 transition-all">
       <div className="flex items-center justify-between">
         <span className="text-xs uppercase tracking-widest text-muted-foreground">{label}</span>
         <Icon className="h-4 w-4 text-primary" />

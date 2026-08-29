@@ -4,6 +4,8 @@ import { NetworkGuard } from "@/components/NetworkGuard";
 import { explorerAddress, NETWORK } from "@/lib/chain-config";
 import { useVaultTvl } from "@/hooks/useVaultTvl";
 import { useLedger } from "@/hooks/useLedger";
+import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
+import { cumulativeSeries, vaultShare } from "@/lib/activity-metrics";
 
 export const Route = createFileRoute("/app/vaults")({
   head: () => ({
@@ -32,7 +34,9 @@ export const Route = createFileRoute("/app/vaults")({
 
 function Vaults() {
   const { tvl, vaults, configured, isLoading, error } = useVaultTvl();
-  const { positionFor } = useLedger();
+  const { entries, positionFor } = useLedger();
+  const share = vaultShare(vaults.map((v) => ({ name: v.name, balance: v.balance })));
+  const series = cumulativeSeries(entries);
 
   return (
     <div className="space-y-6">
@@ -63,11 +67,36 @@ function Vaults() {
         </div>
       )}
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame
+          title="TVL share per vault"
+          subtitle="Live native balances read from BOT Chain"
+          empty={
+            !configured
+              ? "No vaults configured."
+              : isLoading
+                ? "Reading vault balances…"
+                : share.length === 0
+                  ? "Vaults are currently empty."
+                  : undefined
+          }
+        >
+          <SharePie data={share} />
+        </ChartFrame>
+        <ChartFrame
+          title="Your position over time"
+          subtitle="Cumulative net balance from confirmed transactions"
+          empty={series.length === 0 ? "No activity to plot yet." : undefined}
+        >
+          <ActivityLine data={series} label={NETWORK.symbol} />
+        </ChartFrame>
+      </div>
+
       <div className="space-y-3">
         {vaults.map((v) => {
           const pos = positionFor(v.agentId);
           return (
-            <div key={v.agentId} className="panel flex flex-wrap items-center justify-between gap-4 p-5">
+            <div key={v.agentId} className="panel card-3d flex flex-wrap items-center justify-between gap-4 p-5">
               <div className="min-w-0">
                 <p className="font-display text-sm">{v.name}</p>
                 {v.address ? (
