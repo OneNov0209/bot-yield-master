@@ -36,6 +36,9 @@ function Dashboard() {
     agentFilter === "all" ? entries : entries.filter((e) => e.agentId === agentFilter);
   const flow = useMonthlyFlow(filtered);
   const { tvl, configured, isLoading: tvlLoading, error: tvlError } = useVaultTvl();
+  const allocation = allocationByAgent(filtered);
+  const split = flowSplit(filtered);
+  const series = cumulativeSeries(filtered);
 
   const activeAgents = AGENTS.filter((a) => positionFor(a.id).active).length;
   const myDeposited = AGENTS.reduce((sum, a) => sum + positionFor(a.id).net, 0);
