@@ -4,6 +4,8 @@ import { NetworkGuard } from "@/components/NetworkGuard";
 import { explorerAddress, NETWORK } from "@/lib/chain-config";
 import { useVaultTvl } from "@/hooks/useVaultTvl";
 import { useLedger } from "@/hooks/useLedger";
+import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
+import { cumulativeSeries, vaultShare } from "@/lib/activity-metrics";
 
 export const Route = createFileRoute("/app/vaults")({
   head: () => ({
