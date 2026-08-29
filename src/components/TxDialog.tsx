@@ -181,7 +181,7 @@ export function TxDialog({
                 Back
               </button>
               <button
-                disabled={!vault || !value || isPending}
+                disabled={!vault || !value || isPending || usage.blocked}
                 onClick={() => {
                   setStep("signing");
                   sendTransaction({ to: vault!, value: value! });
