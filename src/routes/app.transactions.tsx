@@ -6,6 +6,8 @@ import { TxDetailsDrawer } from "@/components/TxDetailsDrawer";
 import { getAgent } from "@/lib/agents";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { useLedger } from "@/hooks/useLedger";
+import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
+import { cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 import type { LedgerEntry } from "@/lib/activity-ledger";
 
 export const Route = createFileRoute("/app/transactions")({
