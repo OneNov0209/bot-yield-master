@@ -8,7 +8,7 @@ import {
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
-import { botChain, CHAIN_IDS, NETWORKS, WALLETCONNECT_PROJECT_ID } from "./chain-config";
+import { botChain, NETWORKS, WALLETCONNECT_PROJECT_ID } from "./chain-config";
 
 export function createWagmiConfig() {
   const connectors = connectorsForWallets(
@@ -35,8 +35,7 @@ export function createWagmiConfig() {
     connectors,
     chains: [botChain] as const,
     transports: {
-      [CHAIN_IDS.testnet]: http(NETWORKS.testnet.rpcUrl),
-      [CHAIN_IDS.mainnet]: http(NETWORKS.mainnet.rpcUrl),
+      [botChain.id]: http(botChain.rpcUrls.default.http[0]), // Hanya RPC untuk chain aktif (968)
     },
     ssr: true,
   });
