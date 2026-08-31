@@ -12,7 +12,10 @@
     "format": "prettier --write ."
   },
   "overrides": {
-    "rolldown": "1.2.1"
+    "rolldown": "1.2.1",
+    "@coinbase/cdp-sdk": "npm:@coinbase/cdp-sdk@latest",
+    "@x402/evm": "npm:@x402/evm@latest",
+    "@x402/core": "npm:@x402/core@latest"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
