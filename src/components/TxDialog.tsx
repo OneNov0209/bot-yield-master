@@ -54,7 +54,7 @@ export function TxDialog({
   const gasPrice = fees?.maxFeePerGas ?? fees?.gasPrice;
   const gasCost = gasLimit && gasPrice ? gasLimit * gasPrice : undefined;
 
-  const { sendTransaction, data: hash, isPending, error } = useSendTransaction();
+  const { sendTransactionAsync, data: hash, isPending, error } = useSendTransaction();
   const { data: receipt, isLoading: confirming } = useWaitForTransactionReceipt({ hash });
 
   useEffect(() => {
@@ -70,7 +70,6 @@ export function TxDialog({
       });
       setStep("done");
 
-      // NOTIFIKASI: Transaksi Sukses
       toast.success("Transaction Confirmed!", {
         description: `Gas used: ${receipt.gasUsed.toString()} | Block: ${receipt.blockNumber.toString()}`,
         action: {
@@ -80,7 +79,6 @@ export function TxDialog({
       });
     }
 
-    // NOTIFIKASI: Transaksi Gagal / Ditolak
     if (error) {
       toast.error("Transaction Failed", {
         description: error.message.slice(0, 160) || "Transaction rejected",
@@ -198,14 +196,19 @@ export function TxDialog({
                 Back
               </button>
               <button
-                disabled={!vault || !value || isPending || usage.blocked}
-                onClick={() => {
+                disabled={!vault || !value || isPending || confirming || usage.blocked}
+                onClick={async () => {
                   setStep("signing");
-                  sendTransaction({ to: vault!, value: value! });
+                  try {
+                    // Kirim transaksi HANYA SEKALI dan tunggu hash
+                    await sendTransactionAsync({ to: vault!, value: value! });
+                  } catch (err) {
+                    console.error(err);
+                  }
                 }}
                 className="flex-1 rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
-                Sign & send
+                {isPending ? "Signing..." : confirming ? "Confirming..." : "Sign & send"}
               </button>
             </div>
           </div>
@@ -288,10 +291,6 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-/**
- * ROI breakdown computed from the freshest on-chain vault balance after a
- * confirmed deposit/withdraw, including the factors used in the projection.
- */
 function RoiBreakdown({
   agent,
   onChainDelta,
