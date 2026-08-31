@@ -54,8 +54,11 @@ export function TxDialog({
   const gasPrice = fees?.maxFeePerGas ?? fees?.gasPrice;
   const gasCost = gasLimit && gasPrice ? gasLimit * gasPrice : undefined;
 
-  const { sendTransactionAsync, data: hash, isPending, error } = useSendTransaction();
+  const { sendTransaction, data: hash, isPending, error } = useSendTransaction();
   const { data: receipt, isLoading: confirming } = useWaitForTransactionReceipt({ hash });
+
+  // Wajib dipanggil ini: mencegah pengiriman ulang saat isPending
+  const hasSubmitted = useMemo(() => step === "signing", [step]);
 
   useEffect(() => {
     if (receipt?.status === "success" && hash && address && amount) {
@@ -196,15 +199,10 @@ export function TxDialog({
                 Back
               </button>
               <button
-                disabled={!vault || !value || isPending || confirming || usage.blocked}
-                onClick={async () => {
+                disabled={!vault || !value || isPending || confirming || hasSubmitted}
+                onClick={() => {
                   setStep("signing");
-                  try {
-                    // Kirim transaksi HANYA SEKALI dan tunggu hash
-                    await sendTransactionAsync({ to: vault!, value: value! });
-                  } catch (err) {
-                    console.error(err);
-                  }
+                  sendTransaction({ to: vault!, value: value! });
                 }}
                 className="flex-1 rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
