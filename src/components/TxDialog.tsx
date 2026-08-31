@@ -9,6 +9,7 @@ import {
   useSendTransaction,
   useWaitForTransactionReceipt,
 } from "wagmi";
+import { toast } from "sonner";
 import { addEntry, getDailyUsage } from "@/lib/activity-ledger";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { AGENT_TARGET_APY as ESTIMATED_APY, type AgentStrategy } from "@/lib/agents";
@@ -68,8 +69,24 @@ export function TxDialog({
         timestamp: Date.now(),
       });
       setStep("done");
+
+      // NOTIFIKASI: Transaksi Sukses
+      toast.success("Transaction Confirmed!", {
+        description: `Gas used: ${receipt.gasUsed.toString()} | Block: ${receipt.blockNumber.toString()}`,
+        action: {
+          label: "View Details",
+          onClick: () => window.open(explorerTx(hash), "_blank"),
+        },
+      });
     }
-  }, [receipt, hash, address, amount, mode, agent.id]);
+
+    // NOTIFIKASI: Transaksi Gagal / Ditolak
+    if (error) {
+      toast.error("Transaction Failed", {
+        description: error.message.slice(0, 160) || "Transaction rejected",
+      });
+    }
+  }, [receipt, hash, address, amount, mode, agent.id, error]);
 
   const numeric = Number(amount);
   const overBalance =
@@ -116,7 +133,6 @@ export function TxDialog({
             </p>
           )
         )}
-
 
         {step === "amount" && (
           <div className="mt-5 space-y-4">
