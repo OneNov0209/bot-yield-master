@@ -12,15 +12,13 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  // Tambahan konfigurasi untuk mengatasi error @coinbase/cdp-sdk
+  // PERBAIKAN ERROR: Exclude library Coinbase yang tidak dipakai
   vite: {
     optimizeDeps: {
-      // Kecualikan library Coinbase yang tidak dipakai dan bermasalah
       exclude: ["@coinbase/cdp-sdk", "@x402/evm", "@x402/core"],
     },
     build: {
       rollupOptions: {
-        // Kunci agar rollup tidak mencoba bundel library bermasalah
         external: ["@coinbase/cdp-sdk", "@x402/evm", "@x402/core"],
       },
     },
