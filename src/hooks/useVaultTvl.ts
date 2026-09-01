@@ -5,18 +5,11 @@ import { AGENTS, VAULT_ADDRESSES } from "@/lib/agents";
 import { botChain } from "@/lib/chain-config";
 import { LEDGER_EVENT } from "@/lib/activity-ledger";
 
-
+// ABI untuk kontrak AutoYieldVault
 export const AUTO_VAULT_ABI = [
   {
     inputs: [{ name: "_user", type: "address" }],
     name: "getUserDeposited",
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "_user", type: "address" }],
-    name: "getUserShares",
     outputs: [{ type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -44,7 +37,7 @@ export const AUTO_VAULT_ABI = [
   },
 ] as const;
 
-
+/** Per-vault native balance for the Vaults page. */
 export function useVaultBalance(address?: `0x${string}` | undefined) {
   const { data, isLoading, isError, error, refetch } = useReadContract({
     address,
@@ -68,7 +61,7 @@ export function useVaultBalance(address?: `0x${string}` | undefined) {
   };
 }
 
-
+/** Function to return all vault readings + aggregate TVL. */
 export function useVaultTvl() {
   const a = useVaultBalance(AGENTS[0]?.vault);
   const b = useVaultBalance(AGENTS[1]?.vault);
