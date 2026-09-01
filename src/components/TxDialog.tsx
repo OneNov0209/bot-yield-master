@@ -181,15 +181,7 @@ export function TxDialog({
               value={`${vault?.slice(0, 6)}…${vault?.slice(-4)}`}
             />
             <Row label="Network" value={`${NETWORK.name} · ${NETWORK.id}`} />
-            <Row label="Gas limit" value={gasLimit ? gasLimit.toString() : "estimating…"} />
-            <Row
-              label="Est. network fee"
-              value={
-                gasCost
-                  ? `${Number(formatEther(gasCost)).toFixed(6)} ${NETWORK.symbol}`
-                  : "estimating…"
-              }
-            />
+            <Row label="Target APY" value={`${ESTIMATED_APY[agent.risk]}% (${agent.risk} risk)`} />
             <Row
               label="Est. ROI (1y)"
               value={`+${estYearly.toFixed(4)} ${NETWORK.symbol} @ ${ESTIMATED_APY[agent.risk]}% target APY`}
