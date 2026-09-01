@@ -8,7 +8,8 @@ import {
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { createConfig, http } from "wagmi";
-import { botChain, NETWORKS, WALLETCONNECT_PROJECT_ID } from "./chain-config";
+import { botChain } from "./chain-config";
+import { WALLETCONNECT_PROJECT_ID } from "./chain-config";
 
 export function createWagmiConfig() {
   const connectors = connectorsForWallets(
@@ -37,6 +38,6 @@ export function createWagmiConfig() {
     transports: {
       [botChain.id]: http(botChain.rpcUrls.default.http[0]),
     },
-    ssr: false, // ← GANTI DARI true KE false
+    ssr: false,
   });
 }
