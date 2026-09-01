@@ -70,3 +70,33 @@ export function useLedger() {
     status: "reading-onchain",
   };
 }
+
+/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
+export function useMonthlyFlow(entries: any[] = []) {
+  const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
+  const uniqueMonths = Array.from(
+    new Set(
+      sorted.map((e) => {
+        const d = new Date(e.timestamp);
+        return `${d.getMonth()}-${d.getFullYear()}`;
+      })
+    )
+  );
+
+  return uniqueMonths.map((monthKey) => {
+    const monthEntries = sorted.filter((e) => {
+      const d = new Date(e.timestamp);
+      return `${d.getMonth()}-${d.getFullYear()}` === monthKey;
+    });
+
+    const netFlow = monthEntries.reduce((sum, e) => {
+      const amount = Number(e.amount);
+      return e.type === "deposit" ? sum + amount : sum - amount;
+    }, 0);
+
+    return {
+      month: monthKey,
+      value: netFlow,
+    };
+  });
+}
