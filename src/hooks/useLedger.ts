@@ -45,7 +45,7 @@ export function useLedger() {
     if (address) {
       const timer = setInterval(async () => {
         const newEntries = await getEntries(address);
-        setEntries(newEntries);
+        setEntries(Array.isArray(newEntries) ? newEntries : []);
       }, 30_000);
       return () => clearInterval(timer);
     }
@@ -64,7 +64,7 @@ export function useLedger() {
   };
 
   return {
-    entries,
+    entries, // SELALU array
     usage: {
       used: entries.length,
       limit: 20,
