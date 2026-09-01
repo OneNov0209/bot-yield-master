@@ -63,16 +63,6 @@ export function TxDialog({
     query: { enabled: !!vault && !!address },
   });
 
-  // Baca profit user dari kontrak
-  const { data: userProfit } = useReadContract({
-    address: vault,
-    abi: AUTO_VAULT_ABI,
-    functionName: "getUserProfit",
-    chainId: NETWORK.id,
-    args: address ? [address] : undefined,
-    query: { enabled: !!vault && !!address },
-  });
-
   const { sendTransaction, data: hash, isPending, error } = useSendTransaction();
   const { data: receipt, isLoading: confirming } = useWaitForTransactionReceipt({ hash });
 
@@ -214,7 +204,7 @@ export function TxDialog({
                     // Deposit: kirim tBOT native langsung ke kontrak
                     sendTransaction({ to: vault!, value: value! });
                   } else {
-                    // Withdraw: panggil fungsi withdraw(shares)
+                    // Withdraw: Panggil fungsi withdraw(shares) dengan shares yang BENAR
                     const sharesToWithdraw = userShares ? BigInt(userShares) : 0n;
                     sendTransaction({
                       to: vault!,
