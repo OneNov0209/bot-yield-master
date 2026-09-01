@@ -8,7 +8,7 @@ import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
 import { NETWORK } from "@/lib/chain-config";
 import { AGENTS } from "@/lib/agents";
 import { useVaultTvl } from "@/hooks/useVaultTvl";
-import { ChartFrame } from "@/components/charts"; // Hanya import ChartFrame
+import { ChartFrame } from "@/components/charts";
 import { allocationByAgent, cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 
 export const Route = createFileRoute("/app/")({
@@ -25,8 +25,8 @@ function Dashboard() {
   const { data: blockNumber } = useBlockNumber({ watch: true });
   const { entries, usage, positionFor } = useLedger();
   const [agentFilter, setAgentFilter] = useState<string>("all");
-  const filtered =
-    agentFilter === "all" ? entries : entries.filter((e) => e.agentId === agentFilter);
+  const safeEntries = Array.isArray(entries) ? entries : [];
+  const filtered = agentFilter === "all" ? safeEntries : safeEntries.filter((e) => e.agentId === agentFilter);
   const flow = useMonthlyFlow(filtered);
   const { tvl, configured, isLoading: tvlLoading, error: tvlError } = useVaultTvl();
   const allocation = allocationByAgent(filtered);
