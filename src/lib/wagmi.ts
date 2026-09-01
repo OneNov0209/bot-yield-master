@@ -35,8 +35,8 @@ export function createWagmiConfig() {
     connectors,
     chains: [botChain] as const,
     transports: {
-      [botChain.id]: http(botChain.rpcUrls.default.http[0]), // Hanya RPC untuk chain aktif (968)
+      [botChain.id]: http(botChain.rpcUrls.default.http[0]),
     },
-    ssr: true,
+    ssr: false, // ← GANTI DARI true KE false
   });
 }
