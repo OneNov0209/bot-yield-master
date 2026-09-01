@@ -20,7 +20,7 @@ export function useLedger() {
   // Hanya baca dari 1 kontrak (vault pertama)
   const vault = AGENTS[0]?.vault;
 
-  const { data: totalDeposited } = useReadContract({
+  const { data: totalDeposited, refetch: refetchDeposit } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
     functionName: "getUserDeposited",
@@ -29,7 +29,7 @@ export function useLedger() {
     query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
   });
 
-  const { data: totalShares } = useReadContract({
+  const { data: totalShares, refetch: refetchShares } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
     functionName: "getTotalDeposited",
@@ -56,6 +56,11 @@ export function useLedger() {
     return () => window.removeEventListener(LEDGER_EVENT, onLedger);
   }, []);
 
+  const refresh = () => {
+    void refetchDeposit();
+    void refetchShares();
+  };
+
   return {
     entries,
     usage: {
@@ -64,19 +69,17 @@ export function useLedger() {
       remaining: 20,
       blocked: false,
     },
-    // Hanya tampilkan data untuk Yields Aggregator, kosongkan yang lain
     positionFor: (agentId: string): LedgerPosition => {
-      if (agentId === "yields-aggregator") {
-        const net = totalDeposited ? Number(formatEther(totalDeposited)) : 0;
-        return {
-          net,
-          active: net > 0,
-          shares: net,
-        };
-      }
-      // Jika bukan Yields Aggregator, kosongkan (0)
-      return { net: 0, active: false, shares: 0 };
+      const index = AGENTS.findIndex((a) => a.id === agentId);
+      const net = (totalDeposited ? Number(formatEther(totalDeposited)) : 0) +
+                  (totalShares ? Number(formatEther(totalShares)) : 0);
+      return {
+        net,
+        active: net > 0,
+        shares: totalDeposited ? Number(formatEther(totalDeposited)) : 0,
+      };
     },
+    refresh,
     status: "reading-onchain",
   };
 }
