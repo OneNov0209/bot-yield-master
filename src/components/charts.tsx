@@ -1,8 +1,33 @@
-import { ReactNode } from "react";
+import {
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+const COLORS = [
+  "var(--color-chart-1)",
+  "var(--color-chart-2)",
+  "var(--color-chart-3)",
+  "var(--color-chart-4)",
+  "var(--color-chart-5)",
+];
+
+const tooltipStyle = {
+  background: "var(--color-card)",
+  border: "1px solid var(--color-border)",
+  borderRadius: 12,
+  color: "var(--color-foreground)",
+} as const;
 
 type Datum = { name: string; value: number };
-
-const COLORS = ["#a855f7", "#22d3ee", "#34d399", "#f59e0b", "#ef4444"];
 
 export function ChartFrame({
   title,
@@ -12,7 +37,7 @@ export function ChartFrame({
 }: {
   title: string;
   subtitle?: string;
-  children: ReactNode;
+  children: React.ReactNode;
   empty?: string | undefined;
 }) {
   return (
@@ -34,32 +59,30 @@ export function ChartFrame({
 
 /** Donut (with inner radius) or full pie when donut={false}. */
 export function SharePie({ data, donut = true }: { data: Datum[]; donut?: boolean }) {
-  const total = data.reduce((sum, d) => sum + d.value, 0);
-  if (total === 0) {
-    return <p className="text-center text-sm text-muted-foreground">No data</p>;
-  }
-
-  // Menggunakan div, BUKAN svg (menghindari atribut border)
-  const colors = COLORS;
-  const percentages = data.map((d) => (d.value / total) * 100);
-
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3">
-      <div className="flex h-24 w-24 items-center justify-center rounded-full" style={{ background: `conic-gradient(${data.map((d, i) => `${colors[i % colors.length]} ${percentages[i - 1] ?? 0}% ${percentages[i]}%`).join(", ")})` }}>
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-xs text-muted-foreground">
-          {total.toFixed(1)}
-        </div>
-      </div>
-      <div className="space-y-1">
-        {data.map((d, i) => (
-          <div key={d.name} className="flex items-center gap-2 text-xs">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
-            <span>{d.name}</span>
-            <span className="text-muted-foreground">{percentages[i].toFixed(1)}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <ResponsiveContainer width="100%" height="100%">
+      <PieChart>
+        <Pie
+          data={data}
+          dataKey="value"
+          nameKey="name"
+          innerRadius={donut ? "58%" : 0}
+          outerRadius="82%"
+          paddingAngle={donut ? 3 : 1}
+          stroke="var(--color-background)"
+        >
+          {data.map((d, i) => (
+            <Cell key={d.name} fill={COLORS[i % COLORS.length]} />
+          ))}
+        </Pie>
+        <Legend
+          verticalAlign="bottom"
+          height={28}
+          wrapperStyle={{ fontSize: 11, color: "var(--color-muted-foreground)" }}
+        />
+        <Tooltip contentStyle={tooltipStyle} />
+      </PieChart>
+    </ResponsiveContainer>
   );
 }
 
@@ -70,31 +93,22 @@ export function ActivityLine({
   data: { time: string; value: number }[];
   label: string;
 }) {
-  if (!data || data.length === 0) {
-    return <p className="text-center text-sm text-muted-foreground">No activity to plot yet.</p>;
-  }
-
-  const values = data.map((d) => d.value);
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min || 1;
-
   return (
-    <div className="flex h-full items-end gap-1">
-      {data.map((d, i) => {
-        const val = d.value;
-        const height = ((val - min) / range) * 100;
-        return (
-          <div key={i} className="flex flex-1 flex-col items-center gap-1">
-            <div
-              className="w-full rounded-t-md bg-primary"
-              style={{ height: `${height}%` }}
-            />
-            <p className="text-[10px] text-muted-foreground">{d.time}</p>
-          </div>
-        );
-      })}
-      <p className="ml-2 self-center text-xs text-muted-foreground">{label}</p>
-    </div>
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart data={data}>
+        <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+        <XAxis dataKey="time" stroke="var(--color-muted-foreground)" fontSize={11} />
+        <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+        <Tooltip contentStyle={tooltipStyle} />
+        <Line
+          type="monotone"
+          dataKey="value"
+          name={label}
+          stroke="var(--color-neon)"
+          strokeWidth={2}
+          dot={{ r: 3, fill: "var(--color-primary)" }}
+        />
+      </LineChart>
+    </ResponsiveContainer>
   );
 }
