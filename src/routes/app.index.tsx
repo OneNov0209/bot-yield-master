@@ -133,11 +133,11 @@ function Dashboard() {
           empty={allocation.length === 0 ? "No positions yet." : undefined}
         >
           <div className="flex flex-wrap items-center justify-center gap-2">
-            {allocation.map((d, i) => (
-              <div key={i} className="flex items-center gap-1 text-xs">
+            {Object.entries(allocation).map(([agentId, amount]) => (
+              <div key={agentId} className="flex items-center gap-1 text-xs">
                 <span className="h-2 w-2 rounded-full bg-primary" />
-                <span>{d.agentId}</span>
-                <span className="text-muted-foreground">{d.amount.toFixed(2)}</span>
+                <span>{agentId}</span>
+                <span className="text-muted-foreground">{amount.toFixed(2)}</span>
               </div>
             ))}
           </div>
