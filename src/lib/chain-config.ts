@@ -23,7 +23,6 @@ type NetworkConfig = {
   name: string;
   shortName: string;
   rpcUrl: string;
-  fallbackRpcUrl?: string;
   explorerUrl: string;
   symbol: string;
 };
@@ -33,8 +32,6 @@ export const NETWORKS: Record<NetworkKey, NetworkConfig> = {
     id: CHAIN_IDS.testnet,
     name: "BOT Chain Testnet (Bohr)",
     shortName: "Bohr Testnet",
-    // NOTE: https://rpc-testnet.botchain.ai currently returns empty responses,
-    // so it is not used as a fallback (it only added timeouts to every call).
     rpcUrl: "https://rpc.bohr.life",
     explorerUrl: "https://scan.bohr.life",
     symbol: "tBOT",
@@ -43,7 +40,7 @@ export const NETWORKS: Record<NetworkKey, NetworkConfig> = {
     id: CHAIN_IDS.mainnet,
     name: "BOT Chain",
     shortName: "BOT Mainnet",
-    rpcUrl: "https://rpc-bot.klips.io",
+    rpcUrl: "https://rpc.bohr.life",
     explorerUrl: "https://scan.bohr.life",
     symbol: "BOT",
   },
@@ -57,9 +54,7 @@ export const botChain = defineChain({
   id: net.id,
   name: net.name,
   nativeCurrency: { name: net.symbol, symbol: net.symbol, decimals: 18 },
-  rpcUrls: {
-    default: { http: [net.rpcUrl, ...(net.fallbackRpcUrl ? [net.fallbackRpcUrl] : [])] },
-  },
+  rpcUrls: { default: { http: [net.rpcUrl] } },
   blockExplorers: { default: { name: "BOT Scan", url: net.explorerUrl } },
   testnet: ACTIVE_NETWORK === "testnet",
 });
