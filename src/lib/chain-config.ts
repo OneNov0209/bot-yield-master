@@ -40,7 +40,7 @@ export const NETWORKS: Record<NetworkKey, NetworkConfig> = {
     id: CHAIN_IDS.mainnet,
     name: "BOT Chain",
     shortName: "BOT Mainnet",
-    rpcUrl: "https://rpc.bohr.life",
+    rpcUrl: "https://rpc-bot.klips.io",
     explorerUrl: "https://scan.bohr.life",
     symbol: "BOT",
   },
