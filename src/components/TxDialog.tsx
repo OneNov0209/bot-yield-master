@@ -115,10 +115,7 @@ export function TxDialog({
             <h3 className="mt-1 text-lg">{agent.name}</h3>
           </div>
           <button
-            onClick={() => {
-              // Fix: Panggil onClose dengan benar
-              onClose();
-            }}
+            onClick={() => onClose()}
             aria-label="Close"
             className="text-muted-foreground"
           >
@@ -279,10 +276,7 @@ export function TxDialog({
               </a>
             )}
             <button
-              onClick={() => {
-                // Fix: Panggil onClose dengan benar
-                onClose();
-              }}
+              onClick={() => onClose()}
               className="mt-3 w-full rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground"
             >
               Done
