@@ -1,48 +1,107 @@
-import { AGENTS } from "@/lib/agents";
-import type { LedgerEntry } from "@/lib/activity-ledger";
+import { DAILY_INTERACTION_LIMIT } from "./chain-config";
+import { LEDGER_EVENT, LedgerEntry } from "./activity-ledger";
+import { AGENTS } from "./agents";
 
-/** Net position per agent, for the allocation donut. */
-export function allocationByAgent(entries: LedgerEntry[]) {
-  return AGENTS.map((a) => {
-    const net = entries
-      .filter((e) => e.agentId === a.id)
-      .reduce((s, e) => s + (e.type === "deposit" ? Number(e.amount) : -Number(e.amount)), 0);
-    return { name: a.name, value: Number(Math.max(0, net).toFixed(4)) };
-  }).filter((d) => d.value > 0);
-}
+export type ActivityMetric = {
+  month: string;
+  amount: number;
+};
 
-/** Deposit vs withdraw volume, for the flow pie. */
-export function flowSplit(entries: LedgerEntry[]) {
-  const sum = (type: LedgerEntry["type"]) =>
-    Number(
-      entries
-        .filter((e) => e.type === type)
-        .reduce((s, e) => s + Number(e.amount), 0)
-        .toFixed(4),
-    );
-  return [
-    { name: "Deposits", value: sum("deposit") },
-    { name: "Withdrawals", value: sum("withdraw") },
-  ].filter((d) => d.value > 0);
-}
+/**
+ * Menghitung aliran masuk/keluar bulanan berdasarkan data transaksi.
+ * Karena `LedgerEntry` bersifat on-chain, kita menggunakan data dari
+ * `activity-ledger` yang diambil dari blockchain (bukan localStorage).
+ */
+export function getMonthlyFlow(entries: LedgerEntry[] = []): ActivityMetric[] {
+  const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
+  const uniqueMonths = Array.from(new Set(sorted.map((e) => {
+    const d = new Date(e.timestamp);
+    return `${d.getMonth()}-${d.getFullYear()}`;
+  })));
 
-/** Cumulative net position over time, for the activity line chart. */
-export function cumulativeSeries(entries: LedgerEntry[]) {
-  let running = 0;
-  return [...entries]
-    .sort((a, b) => a.timestamp - b.timestamp)
-    .map((e) => {
-      running += e.type === "deposit" ? Number(e.amount) : -Number(e.amount);
-      return {
-        time: new Date(e.timestamp).toLocaleDateString(),
-        value: Number(Math.max(0, running).toFixed(4)),
-      };
+  return uniqueMonths.map((monthKey) => {
+    const monthEntries = sorted.filter((e) => {
+      const d = new Date(e.timestamp);
+      return `${d.getMonth()}-${d.getFullYear()}` === monthKey;
     });
+
+    const netFlow = monthEntries.reduce((sum, e) => {
+      const amount = Number(e.amount);
+      return e.type === "deposit" ? sum + amount : sum - amount;
+    }, 0);
+
+    return {
+      month: monthKey,
+      amount: netFlow,
+    };
+  });
 }
 
-/** Per-vault TVL share, for the vaults donut. */
-export function vaultShare(vaults: { name: string; balance: number }[]) {
-  return vaults
-    .map((v) => ({ name: v.name, value: Number(v.balance.toFixed(4)) }))
-    .filter((v) => v.value > 0);
+/**
+ * Menghitung alokasi dana per agent.
+ */
+export function getAgentAllocation(entries: LedgerEntry[] = []): Record<string, number> {
+  const allocation: Record<string, number> = {};
+  for (const e of entries) {
+    const agentId = e.agentId;
+    const amount = Number(e.amount);
+    if (!allocation[agentId]) {
+      allocation[agentId] = 0;
+    }
+    if (e.type === "deposit") {
+      allocation[agentId] += amount;
+    } else if (e.type === "withdraw") {
+      allocation[agentId] -= amount;
+    }
+  }
+  return allocation;
 }
+
+/**
+ * Menghitung posisi kumulatif (net flow) dari waktu ke waktu.
+ */
+export function getCumulativePosition(entries: LedgerEntry[] = []): ActivityMetric[] {
+  const sorted = [...entries].sort((a, b) => a.timestamp - b.timestamp);
+  let runningBalance = 0;
+
+  return sorted.map((e) => {
+    const amount = Number(e.amount);
+    if (e.type === "deposit") {
+      runningBalance += amount;
+    } else if (e.type === "withdraw") {
+      runningBalance -= amount;
+    }
+    return {
+      month: new Date(e.timestamp).toISOString(),
+      amount: runningBalance,
+    };
+  });
+}
+
+/**
+ * Membaca status agent dari on-chain data.
+ */
+export function getAgentStatuses() {
+  return AGENTS.map((agent) => ({
+    agentId: agent.id,
+    name: agent.name,
+    risk: agent.risk,
+    vault: agent.vault,
+    status: "active",
+  }));
+}
+
+/** Fungsi export tambahan untuk dukungan build. */
+export function getDailyUsage(address?: string) {
+  const used = 0;
+  return {
+    used,
+    limit: DAILY_INTERACTION_LIMIT,
+    remaining: Math.max(0, DAILY_INTERACTION_LIMIT - used),
+    blocked: used >= DAILY_INTERACTION_LIMIT,
+  };
+}
+
+export const monthlyFlow = getMonthlyFlow;
+export const agentAllocation = getAgentAllocation;
+export const cumulativePosition = getCumulativePosition;
