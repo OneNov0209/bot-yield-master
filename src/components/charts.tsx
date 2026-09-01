@@ -1,4 +1,3 @@
-import { formatEther } from "viem";
 import { ReactNode } from "react";
 
 type Datum = { name: string; value: number };
@@ -40,42 +39,23 @@ export function SharePie({ data, donut = true }: { data: Datum[]; donut?: boolea
     return <p className="text-center text-sm text-muted-foreground">No data</p>;
   }
 
-  let currentAngle = 0;
+  // Menggunakan div, BUKAN svg (menghindari atribut border)
+  const colors = COLORS;
+  const percentages = data.map((d) => (d.value / total) * 100);
 
   return (
     <div className="flex flex-wrap items-center justify-center gap-3">
-      <svg width="120" height="120" viewBox="0 0 120 120">
-        {data.map((d, i) => {
-          const percentage = (d.value / total) * 100;
-          const angle = (percentage / 100) * 360;
-          const start = currentAngle;
-          currentAngle += angle;
-
-          const largeArc = angle > 180 ? 1 : 0;
-          const x1 = 60 + 50 * Math.cos((start * Math.PI) / 180);
-          const y1 = 60 + 50 * Math.sin((start * Math.PI) / 180);
-          const x2 = 60 + 50 * Math.cos(((start + angle) * Math.PI) / 180);
-          const y2 = 60 + 50 * Math.sin(((start + angle) * Math.PI) / 180);
-
-          return (
-            <path
-              key={d.name}
-              d={`M 60 60 L ${x1} ${y1} A 50 50 0 ${largeArc} 1 ${x2} ${y2} Z`}
-              fill={COLORS[i % COLORS.length]}
-              stroke="white"
-              strokeWidth="2"
-            />
-          );
-        })}
-      </svg>
+      <div className="flex h-24 w-24 items-center justify-center rounded-full" style={{ background: `conic-gradient(${data.map((d, i) => `${colors[i % colors.length]} ${percentages[i - 1] ?? 0}% ${percentages[i]}%`).join(", ")})` }}>
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-xs text-muted-foreground">
+          {total.toFixed(1)}
+        </div>
+      </div>
       <div className="space-y-1">
         {data.map((d, i) => (
           <div key={d.name} className="flex items-center gap-2 text-xs">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
             <span>{d.name}</span>
-            <span className="text-muted-foreground">
-              {((d.value / total) * 100).toFixed(1)}%
-            </span>
+            <span className="text-muted-foreground">{percentages[i].toFixed(1)}%</span>
           </div>
         ))}
       </div>
