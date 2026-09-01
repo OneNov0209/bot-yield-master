@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { addEntry, getDailyUsage } from "@/lib/activity-ledger";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { AGENT_TARGET_APY as ESTIMATED_APY, type AgentStrategy } from "@/lib/agents";
-import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
+import { AUTO_VAULT_ABI, useVaultBalance } from "@/hooks/useVaultTvl";
 
 type Mode = "deposit" | "withdraw";
 type Step = "amount" | "preview" | "signing" | "done";
