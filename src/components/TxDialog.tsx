@@ -1,11 +1,10 @@
 import { CheckCircle2, ExternalLink, Loader2, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { formatEther, parseEther, type Address } from "viem";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { formatEther, parseEther, parseGwei, type Address } from "viem";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useAccount,
   useBalance,
-  useEstimateFeesPerGas,
-  useEstimateGas,
   useSendTransaction,
   useWaitForTransactionReceipt,
 } from "wagmi";
@@ -17,6 +16,9 @@ import { useVaultBalance } from "@/hooks/useVaultTvl";
 
 type Mode = "deposit" | "withdraw";
 type Step = "amount" | "preview" | "signing" | "done";
+
+const DEFAULT_GAS_LIMIT = 300_000n;
+const DEFAULT_MAX_FEE_PER_GAS = parseGwei("30");
 
 export function TxDialog({
   agent,
@@ -30,6 +32,8 @@ export function TxDialog({
   onClose: () => void;
 }) {
   const { address } = useAccount();
+  const queryClient = useQueryClient();
+  const submittedRef = useRef(false);
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const { data: balance } = useBalance({ address });
@@ -44,15 +48,7 @@ export function TxDialog({
     }
   }, [amount]);
 
-  const { data: gasLimit } = useEstimateGas({
-    to: vault,
-    value,
-    query: { enabled: step === "preview" && !!vault && !!value },
-  });
-  const { data: fees } = useEstimateFeesPerGas({ query: { enabled: step === "preview" } });
-
-  const gasPrice = fees?.maxFeePerGas ?? fees?.gasPrice;
-  const gasCost = gasLimit && gasPrice ? gasLimit * gasPrice : undefined;
+  const gasCost = DEFAULT_GAS_LIMIT * DEFAULT_MAX_FEE_PER_GAS;
 
   const { sendTransaction, data: hash, isPending, error } = useSendTransaction();
   const { data: receipt, isLoading: confirming } = useWaitForTransactionReceipt({ hash });
@@ -71,6 +67,7 @@ export function TxDialog({
         chainId: NETWORK.id,
         timestamp: Date.now(),
       });
+      void queryClient.invalidateQueries();
       setStep("done");
 
       toast.success("Transaction Confirmed!", {
@@ -87,7 +84,7 @@ export function TxDialog({
         description: error.message.slice(0, 160) || "Transaction rejected",
       });
     }
-  }, [receipt, hash, address, amount, mode, agent.id, error]);
+  }, [receipt, hash, address, amount, mode, agent.id, error, queryClient]);
 
   const numeric = Number(amount);
   const overBalance =
@@ -177,13 +174,11 @@ export function TxDialog({
               value={`${vault?.slice(0, 6)}…${vault?.slice(-4)}`}
             />
             <Row label="Network" value={`${NETWORK.name} · ${NETWORK.id}`} />
-            <Row label="Gas limit" value={gasLimit ? gasLimit.toString() : "estimating…"} />
+            <Row label="Gas limit" value={`${DEFAULT_GAS_LIMIT.toString()} (fixed cap)`} />
             <Row
               label="Est. network fee"
               value={
-                gasCost
-                  ? `${Number(formatEther(gasCost)).toFixed(6)} ${NETWORK.symbol}`
-                  : "estimating…"
+                `${Number(formatEther(gasCost)).toFixed(6)} ${NETWORK.symbol} (maximum)`
               }
             />
             <Row
@@ -201,8 +196,15 @@ export function TxDialog({
               <button
                 disabled={!vault || !value || isPending || confirming || hasSubmitted}
                 onClick={() => {
+                  if (!vault || !value || submittedRef.current || isPending || confirming) return;
+                  submittedRef.current = true;
                   setStep("signing");
-                  sendTransaction({ to: vault!, value: value! });
+                  sendTransaction({
+                    to: vault,
+                    value,
+                    gas: DEFAULT_GAS_LIMIT,
+                    maxFeePerGas: DEFAULT_MAX_FEE_PER_GAS,
+                  });
                 }}
                 className="flex-1 rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
@@ -236,7 +238,10 @@ export function TxDialog({
             )}
             {error && (
               <button
-                onClick={() => setStep("preview")}
+                onClick={() => {
+                  submittedRef.current = false;
+                  setStep("preview");
+                }}
                 className="mt-2 rounded-lg border border-border px-4 py-2 text-sm"
               >
                 Back

@@ -4,10 +4,8 @@ import { useState } from "react";
 import { NetworkGuard } from "@/components/NetworkGuard";
 import { RoiEstimate } from "@/components/RoiEstimate";
 import { TxDialog } from "@/components/TxDialog";
-import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
 import { AGENTS, type AgentStrategy } from "@/lib/agents";
 import { NETWORK } from "@/lib/chain-config";
-import { allocationByAgent, cumulativeSeries } from "@/lib/activity-metrics";
 import { validateVaultConfig } from "@/lib/config-validation";
 import { useLedger } from "@/hooks/useLedger";
 
@@ -39,8 +37,6 @@ export const Route = createFileRoute("/app/agents")({
 function Agents() {
   const { entries, positionFor, refresh } = useLedger();
   const issues = validateVaultConfig();
-  const allocation = allocationByAgent(entries);
-  const series = cumulativeSeries(entries);
   const [dialog, setDialog] = useState<{
     agent: AgentStrategy;
     mode: "deposit" | "withdraw";
@@ -101,23 +97,6 @@ function Agents() {
             );
           })}
         </div>
-      </div>
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ChartFrame
-          title="Your allocation"
-          subtitle="Net position per agent from confirmed transactions"
-          empty={allocation.length === 0 ? "No positions yet — deposit to an agent." : undefined}
-        >
-          <SharePie data={allocation} />
-        </ChartFrame>
-        <ChartFrame
-          title="Position over time"
-          subtitle="Cumulative net balance across agents"
-          empty={series.length === 0 ? "No activity to plot yet." : undefined}
-        >
-          <ActivityLine data={series} label={NETWORK.symbol} />
-        </ChartFrame>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

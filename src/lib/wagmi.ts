@@ -7,7 +7,7 @@ import {
   binanceWallet,
   walletConnectWallet,
 } from "@rainbow-me/rainbowkit/wallets";
-import { createConfig, http } from "wagmi";
+import { createConfig, fallback, http } from "wagmi";
 import { botChain } from "./chain-config";
 import { WALLETCONNECT_PROJECT_ID } from "./chain-config";
 
@@ -36,7 +36,14 @@ export function createWagmiConfig() {
     connectors,
     chains: [botChain] as const,
     transports: {
-      [botChain.id]: http(botChain.rpcUrls.default.http[0]),
+      [botChain.id]: fallback(
+        botChain.rpcUrls.default.http.map((url) =>
+          http(url, {
+            retryCount: 1,
+            timeout: 8_000,
+          }),
+        ),
+      ),
     },
     ssr: false,
   });
