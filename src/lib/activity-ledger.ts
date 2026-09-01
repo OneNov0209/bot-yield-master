@@ -1,6 +1,7 @@
 import { createPublicClient, http, parseAbiItem } from "viem";
 import { botChain } from "./chain-config";
 import { DAILY_INTERACTION_LIMIT } from "./chain-config";
+import { AGENTS } from "./agents";
 
 export type LedgerEntry = {
   hash: string;
@@ -19,7 +20,6 @@ const publicClient = createPublicClient({
 
 export const LEDGER_EVENT = "bot-ai-agent:ledger-updated";
 
-
 export const VAULT_EVENTS_ABI = [
   parseAbiItem("event Deposited(address indexed user, uint256 amount, uint256 shares)"),
   parseAbiItem("event Withdrawn(address indexed user, uint256 amount, uint256 shares)"),
@@ -30,31 +30,40 @@ export async function getEntries(address?: string) {
     return [];
   }
 
-  
-  const logs = await publicClient.getLogs({
-    address: "0x9770030AB6A808945D6B4E8BEa599e9cfDc5D1A9",
-    event: VAULT_EVENTS_ABI[0],
-    args: { user: address as `0x${string}` },
-    fromBlock: 0n,
-    toBlock: "latest",
-  });
+  const allEntries: LedgerEntry[] = [];
 
-  return logs.map((log) => ({
-    hash: log.transactionHash,
-    type: "deposit" as const,
-    agentId: "yields-aggregator",
-    amount: log.args.amount.toString(),
-    address,
-    chainId: botChain.id,
-    timestamp: Number(log.blockNumber * 1000n),
-  }));
+  for (const agent of AGENTS) {
+    if (!agent.vault) continue;
+
+    const logs = await publicClient.getLogs({
+      address: agent.vault,
+      event: VAULT_EVENTS_ABI[0],
+      args: { user: address as `0x${string}` },
+      fromBlock: 0n,
+      toBlock: "latest",
+    });
+
+    for (const log of logs) {
+      allEntries.push({
+        hash: log.transactionHash,
+        type: "deposit" as const,
+        agentId: agent.id,
+        amount: log.args.amount.toString(),
+        address,
+        chainId: botChain.id,
+        timestamp: Number(log.blockNumber * 1000n),
+      });
+    }
+  }
+
+  return allEntries;
 }
 
 export function addEntry(entry: LedgerEntry) {
-  
   window.dispatchEvent(new Event(LEDGER_EVENT));
 }
 
+/** Community rule: max DAILY_INTERACTION_LIMIT signed interactions per address per day. */
 export function getDailyUsage(address?: string) {
   const used = 0;
   return {
