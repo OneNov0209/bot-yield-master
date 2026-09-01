@@ -17,9 +17,9 @@ export function useLedger() {
   const { address } = useAccount();
   const [entries, setEntries] = useState<any[]>([]);
 
+  // Hanya baca dari 1 kontrak (vault pertama)
   const vault = AGENTS[0]?.vault;
 
-  // Baca deposit user dari kontrak
   const { data: totalDeposited } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
@@ -29,16 +29,15 @@ export function useLedger() {
     query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
   });
 
-  
-  const { data: userProfit } = useReadContract({
+  const { data: totalShares } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
-    functionName: "getUserProfit",
+    functionName: "getTotalDeposited",
     chainId: botChain.id,
-    args: address ? [address] : undefined,
-    query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
+    query: { enabled: true, retry: 1, refetchInterval: 30_000 },
   });
 
+  // Ambil riwayat dari blockchain
   useEffect(() => {
     if (address) {
       const timer = setInterval(async () => {
@@ -65,20 +64,24 @@ export function useLedger() {
       remaining: 20,
       blocked: false,
     },
+    // Hanya tampilkan data untuk Yields Aggregator, kosongkan yang lain
     positionFor: (agentId: string): LedgerPosition => {
-      const index = AGENTS.findIndex((a) => a.id === agentId);
-      const net = (totalDeposited ? Number(formatEther(totalDeposited)) : 0) +
-                  (userProfit ? Number(formatEther(userProfit)) : 0);
-      return {
-        net,
-        active: net > 0,
-        shares: totalDeposited ? Number(formatEther(totalDeposited)) : 0,
-      };
+      if (agentId === "yields-aggregator") {
+        const net = totalDeposited ? Number(formatEther(totalDeposited)) : 0;
+        return {
+          net,
+          active: net > 0,
+          shares: net,
+        };
+      }
+      // Jika bukan Yields Aggregator, kosongkan (0)
+      return { net: 0, active: false, shares: 0 };
     },
     status: "reading-onchain",
   };
 }
 
+/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
 export function useMonthlyFlow(entries: any[] = []) {
   const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
   const uniqueMonths = Array.from(
