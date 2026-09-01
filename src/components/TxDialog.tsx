@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useAccount,
   useBalance,
+  usePublicClient,
   useSendTransaction,
   useWaitForTransactionReceipt,
 } from "wagmi";
