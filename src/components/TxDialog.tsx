@@ -5,6 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useAccount,
   useBalance,
+  usePublicClient,
   useSendTransaction,
   useWaitForTransactionReceipt,
 } from "wagmi";
@@ -56,6 +57,39 @@ export function TxDialog({
   const { data: receipt, isLoading: confirming } = useWaitForTransactionReceipt({ hash });
 
   const hasSubmitted = step === "signing";
+
+  // Real pre-flight simulation against the RPC: if the vault rejects a plain
+  // native transfer the user is told here instead of paying for a reverted tx.
+  const publicClient = usePublicClient();
+  const [simulating, setSimulating] = useState(false);
+  const [simError, setSimError] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (step !== "preview" || !publicClient || !vault || !value || !address) return;
+    let cancelled = false;
+    setSimulating(true);
+    setSimError(undefined);
+    publicClient
+      .estimateGas({ account: address, to: vault, value })
+      .then(() => {
+        if (!cancelled) setSimError(undefined);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const raw = e instanceof Error ? e.message : String(e);
+        setSimError(
+          /revert|execution reverted|invalid opcode|out of gas/i.test(raw)
+            ? `Simulation reverted: the contract at ${vault.slice(0, 6)}…${vault.slice(-4)} does not accept a plain ${NETWORK.symbol} transfer. This vault address is not a native-token vault, so deposits can never succeed with it.`
+            : raw.split("\n")[0]!.slice(0, 200),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setSimulating(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [step, publicClient, vault, value, address]);
 
   useEffect(() => {
     if (
@@ -207,6 +241,15 @@ export function TxDialog({
               label="Est. ROI (1y)"
               value={`+${estYearly.toFixed(4)} ${NETWORK.symbol} @ ${ESTIMATED_APY[agent.risk]}% target APY`}
             />
+            <Row
+              label="Simulation"
+              value={simulating ? "Running…" : simError ? "Will fail" : "Passed"}
+            />
+            {simError && (
+              <p className="rounded-lg border border-destructive/40 bg-surface p-3 text-xs text-destructive">
+                {simError}
+              </p>
+            )}
             {error && <p className="text-xs text-destructive">{error.message.slice(0, 160)}</p>}
             <div className="flex gap-2 pt-2">
               <button
@@ -216,7 +259,9 @@ export function TxDialog({
                 Back
               </button>
               <button
-                disabled={!vault || !value || isPending || confirming || hasSubmitted}
+                disabled={
+                  !vault || !value || isPending || confirming || hasSubmitted || simulating || !!simError
+                }
                 onClick={() => {
                   if (!vault || !value || submittedRef.current || isPending || confirming) return;
                   submittedRef.current = true;
