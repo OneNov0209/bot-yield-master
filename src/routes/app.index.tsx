@@ -2,15 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { Activity, Coins, Layers, ShieldCheck } from "lucide-react";
 import { formatEther } from "viem";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { useAccount, useBalance, useBlockNumber } from "wagmi";
 import { NetworkGuard } from "@/components/NetworkGuard";
 import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
@@ -120,35 +111,17 @@ function Dashboard() {
               performance.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={flow}>
-                <defs>
-                  <linearGradient id="flowFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--color-primary)" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="var(--color-primary)" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                <XAxis dataKey="month" stroke="var(--color-muted-foreground)" fontSize={12} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 12,
-                    color: "var(--color-foreground)",
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="var(--color-neon)"
-                  strokeWidth={2}
-                  fill="url(#flowFill)"
-                  name={NETWORK.symbol}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="flex h-full items-end gap-2">
+              {flow.map((d, i) => (
+                <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                  <div
+                    className="w-full rounded-t-md bg-primary"
+                    style={{ height: `${Math.max(5, Math.abs(d.value))}px` }}
+                  />
+                  <p className="text-xs text-muted-foreground">{d.month}</p>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
