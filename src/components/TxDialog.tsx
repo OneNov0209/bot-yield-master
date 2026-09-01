@@ -58,6 +58,39 @@ export function TxDialog({
 
   const hasSubmitted = step === "signing";
 
+  // Real pre-flight simulation against the RPC: if the vault rejects a plain
+  // native transfer the user is told here instead of paying for a reverted tx.
+  const publicClient = usePublicClient();
+  const [simulating, setSimulating] = useState(false);
+  const [simError, setSimError] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (step !== "preview" || !publicClient || !vault || !value || !address) return;
+    let cancelled = false;
+    setSimulating(true);
+    setSimError(undefined);
+    publicClient
+      .estimateGas({ account: address, to: vault, value })
+      .then(() => {
+        if (!cancelled) setSimError(undefined);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const raw = e instanceof Error ? e.message : String(e);
+        setSimError(
+          /revert|execution reverted|invalid opcode|out of gas/i.test(raw)
+            ? `Simulation reverted: the contract at ${vault.slice(0, 6)}…${vault.slice(-4)} does not accept a plain ${NETWORK.symbol} transfer. This vault address is not a native-token vault, so deposits can never succeed with it.`
+            : raw.split("\n")[0]!.slice(0, 200),
+        );
+      })
+      .finally(() => {
+        if (!cancelled) setSimulating(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [step, publicClient, vault, value, address]);
+
   useEffect(() => {
     if (
       receipt?.status === "success" &&
