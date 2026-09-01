@@ -241,6 +241,15 @@ export function TxDialog({
               label="Est. ROI (1y)"
               value={`+${estYearly.toFixed(4)} ${NETWORK.symbol} @ ${ESTIMATED_APY[agent.risk]}% target APY`}
             />
+            <Row
+              label="Simulation"
+              value={simulating ? "Running…" : simError ? "Will fail" : "Passed"}
+            />
+            {simError && (
+              <p className="rounded-lg border border-destructive/40 bg-surface p-3 text-xs text-destructive">
+                {simError}
+              </p>
+            )}
             {error && <p className="text-xs text-destructive">{error.message.slice(0, 160)}</p>}
             <div className="flex gap-2 pt-2">
               <button
@@ -250,7 +259,9 @@ export function TxDialog({
                 Back
               </button>
               <button
-                disabled={!vault || !value || isPending || confirming || hasSubmitted}
+                disabled={
+                  !vault || !value || isPending || confirming || hasSubmitted || simulating || !!simError
+                }
                 onClick={() => {
                   if (!vault || !value || submittedRef.current || isPending || confirming) return;
                   submittedRef.current = true;
