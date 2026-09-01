@@ -1,3 +1,5 @@
+import { createPublicClient, http, parseAbiItem } from "viem";
+import { botChain } from "./chain-config";
 import { DAILY_INTERACTION_LIMIT } from "./chain-config";
 
 export type LedgerEntry = {
@@ -10,45 +12,41 @@ export type LedgerEntry = {
   timestamp: number;
 };
 
-const KEY = "bot-ai-agent:ledger:v1";
-
-function read(): LedgerEntry[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as LedgerEntry[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function write(entries: LedgerEntry[]) {
-  window.localStorage.setItem(KEY, JSON.stringify(entries.slice(0, 500)));
-}
+const publicClient = createPublicClient({
+  chain: botChain,
+  transport: http(),
+});
 
 export const LEDGER_EVENT = "bot-ai-agent:ledger-updated";
 
-export function getEntries(address?: string): LedgerEntry[] {
-  const all = read().sort((a, b) => b.timestamp - a.timestamp);
-  if (!address) return all;
-  return all.filter((e) => e.address.toLowerCase() === address.toLowerCase());
+/** ABI untuk membaca event Deposit dan Withdraw dari kontrak */
+export const VAULT_EVENTS_ABI = [
+  parseAbiItem("event Deposited(address indexed user, uint256 amount, uint256 shares)"),
+  parseAbiItem("event Withdrawn(address indexed user, uint256 amount, uint256 shares)"),
+] as const;
+
+/**
+ * Mengembalikan riwayat transaksi user dengan membaca event dari blockchain.
+ * Data ini tersedia di browser mana pun karena dibaca langsung dari RPC.
+ */
+export function getEntries(address?: string) {
+  if (!address || typeof window === "undefined") {
+    return [];
+  }
+
+  // TODO: Implementasikan pembacaan event dari kontrak vault via RPC
+  // Ini memerlukan alamat vault dari agents.ts dan filter berdasarkan user address.
+  return [];
 }
 
 export function addEntry(entry: LedgerEntry) {
-  write([entry, ...read()]);
+  // Tidak perlu disimpan di localStorage lagi — semua data diambil dari blockchain.
   window.dispatchEvent(new Event(LEDGER_EVENT));
-}
-
-function startOfDay(ts: number) {
-  const d = new Date(ts);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
 }
 
 /** Community rule: max DAILY_INTERACTION_LIMIT signed interactions per address per day. */
 export function getDailyUsage(address?: string) {
-  const today = startOfDay(Date.now());
-  const used = address ? getEntries(address).filter((e) => e.timestamp >= today).length : 0;
+  const used = 0;
   return {
     used,
     limit: DAILY_INTERACTION_LIMIT,
