@@ -1,73 +1,150 @@
 # BOT Yield Master
 
-Kamu adalah Full-Stack Web3 Developer dan UI/UX Designer ahli yang membangun Decentralized Application (dApp) di ekosistem BOT Chain. Tugasmu membangun "BOT AI Agent" — sebuah dApp AI Agent + DeFi yang fungsional, modern, dan siap deploy ke Mainnet. Tujuan utamanya: otomatisasi strategi yield farming dan manajemen aset kripto dengan AI Agent on-chain.
+**BOT Yield Master** is a decentralized application (dApp) built on the **BOT Chain Testnet (Bohr)**. It combines **AI-driven automation** with **DeFi yield strategies** to help users optimize their crypto asset management. Users can deposit, withdraw, and monitor the performance of multiple AI Agents in real-time.
 
-# 1. DESAIN & BRANDING
-- Gaya visual: "Cyberpunk Futuristik" / "Dark Tech DeFi" (dark mode, aksen neon ungu/sian).
-- Logo utama: https://raw.githubusercontent.com/OneNov0209/logo/refs/heads/main/BotChain.png
-- Tagline: "Autonomous Yield. Intelligent Future."
+---
 
-# 2. KONFIGURASI JARINGAN (WAJIB)
-- Network Name: BOT Chain Testnet (Bohr)
-- RPC URL: https://rpc.bohr.life
-- Chain ID: 968
-- Currency Symbol: tBOT
-- Block Explorer: https://scan.bohr.life/
-- Referensi Chain ID Mainnet: 677 (untuk production nanti).
+## 🚀 Key Features
 
-# 3. FITUR UTAMA
-- Wallet Connect: Gunakan library RainbowKit (atau Web3Modal dari Reown). Jangan buat modal custom manual.
-- Dashboard: Menampilkan TVL, saldo user, performa AI Agent (grafik return bulanan).
-- Daftar AI Agent: User bisa pilih strategi (misal: "Yields Aggregator", "Stable LP Hunter").
-- Deposit & Withdraw: User bisa deposit tBOT ke Agent, status berubah jadi "Active", dan tampilkan estimasi ROI.
-- Multi-Step Transaction: Preview biaya gas & simulasi transaksi sebelum user menandatangani.
-- Transactions History: Riwayat transaksi dengan link langsung ke Block Explorer.
+- **AI Agent Dashboard**  
+  Displays a list of AI Agents (Yields Aggregator, Stable LP Hunter, Delta Neutral Bot) with their strategies and target APY.
 
-# 4. TAMPILAN WALLET CONNECT (WAJIB SAMA SEPERTI SCREENSHOT)
-Gunakan UI bawaan RainbowKit/Web3Modal dengan dark mode aktif.
-- Layout: Split-screen (daftar wallet di sisi kiri, penjelasan "What is a Wallet?" di sisi kanan).
-- Label otomatis: "Installed" untuk wallet yang terpasang (misal MetaMask), "Recent" untuk wallet terakhir dipakai.
-- Daftar wallet minimal: MetaMask, Rabby Wallet, Trust Wallet, OKX Wallet, Binance Wallet, dan WalletConnect.
-- Setelah connect, langsung auto-switch ke jaringan BOT Chain Testnet (Bohr) menggunakan fungsi switchNetwork/addChain dengan parameter di atas.
+- **Deposit & Withdraw**  
+  Users can deposit tBOT into an Agent, see their status change to "Active", and receive estimated ROI projections.
 
-# 5. STRUKTUR UI
-- Header: Logo BOT Chain di kiri, nama aplikasi di tengah, tombol "Connect Wallet" di kanan.
-- Sidebar: Menu "Dashboard", "Agents", "Vaults", "Transactions".
-- Dashboard: Kartu statistik TVL, saldo user, grafik performa Agent.
+- **Multi-Step Transaction**  
+  Preview gas fees, transaction simulation (Passed / Will fail), and estimated ROI before signing.
 
-# 6. TEKNIS CODE
-- Gunakan React + Tailwind CSS + Ethers.js (atau Viem) + wagmi + RainbowKit.
-- Buat file konfigurasi terpusat (misal config.ts) berisi RPC, Chain ID, dan Block Explorer agar mudah pindah Testnet ke Mainnet.
-- Jangan hardcode private key atau API key sensitif di frontend.
+- **Transactions History**  
+  Complete transaction history with direct links to the BOT Chain Block Explorer.
 
-# 7. KEPATUHAN PROGRAM (ANTI-CHEATING)
-- Tidak ada fitur self-trading, wash trading, atau manipulasi data.
-- Semua data performa dari on-chain asli, bukan dummy random.
-- Batasi interaksi harian (maks 20 kali per address per hari) sesuai aturan komunitas.
+- **Real-time TVL & ROI**  
+  Dashboard shows Total Value Locked (TVL) and Agent performance calculated from **real on-chain data** (no dummy data).
 
-# 8. LANGKAH EKSEKUSI
-Mulai dengan membuat struktur proyek React + Tailwind + RainbowKit. Buat Landing Page sederhana dengan logo dan tombol "Launch App". Setelah itu bangun Dashboard utama yang berfungsi penuh dengan Wallet Connect modal seperti screenshot. Pastikan kode bersih dan mengikuti best practices.
+- **Modern Wallet Connect**  
+  Uses RainbowKit with a split-screen modal (wallet list on the left, explanation on the right), auto-switch networks, and "Installed" / "Recent" labels for wallets.
 
-# CATATAN TEKNIS TAMBAHAN
-Untuk mencapai tampilan wallet connect seperti screenshot, gunakan `@rainbow-me/rainbowkit` dan `wagmi`. Bungkus App dengan `RainbowKitProvider` menggunakan `darkTheme`. Gunakan `getDefaultConfig` dengan `chains: [botTestnet]` dan `projectId` dummy dari WalletConnect Cloud.
+---
 
-This project was built with [Lovable](https://lovable.dev).
+## 🌐 Network Configuration
 
-## Build with Lovable
+The project runs on the **BOT Chain Testnet (Bohr)** and is ready to be upgraded to Mainnet.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/2d02734f-2a80-490b-bb44-fbe9682db058).
+| Parameter         | Value                          |
+|-------------------|--------------------------------|
+| Network Name      | BOT Chain Testnet (Bohr)       |
+| RPC URL           | `https://rpc.bohr.life`        |
+| Chain ID          | `968`                          |
+| Currency Symbol   | `tBOT`                         |
+| Block Explorer    | `https://scan.bohr.life/`      |
+| Mainnet Chain ID  | `677` (for future production)  |
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+---
 
-## Development
+## 🤖 AI Agents
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+| Agent                | Risk   | Target APY | Strategy                                                                |
+|----------------------|--------|------------|-------------------------------------------------------------------------|
+| Yields Aggregator    | Medium | 14.2%      | Automatically rebalances capital to the highest-yield pools on BOT Chain. |
+| Stable LP Hunter     | Low    | 6.5%       | Focuses only on stablecoin pairs, compounding rewards hourly.           |
+| Delta Neutral Bot    | High   | 23.8%      | Hedges with short perpetuals to capture funding rates and farm rewards. |
+
+---
+
+## 🏗️ Technical Architecture
+
+### Frontend (dApp)
+
+- **React 19** + **Tailwind CSS 4**
+- **TanStack Router** + **TanStack Query** for routing and data fetching
+- **Wagmi** + **RainbowKit** for wallet connection and on-chain interactions
+- **Viem** for blockchain utilities (formatting, gas estimation, etc.)
+- **Recharts** for performance visualization
+
+### Smart Contract (Vault)
+
+- **PremiumNativeVault** (Solidity 0.8.20) — deployed on BOT Chain Testnet
+- Accepts **native tBOT** directly (via `receive()`)
+- Has a **shares system** to calculate ownership proportions
+- Has a **performance fee** (5%) to the treasury
+- Supports **AI Agent** for on-chain strategy execution
+
+### Transaction Flow
+
+1. User selects an Agent and enters a deposit amount.
+2. dApp simulates the transaction (estimateGas).
+3. User signs the transaction in their wallet.
+4. Contract receives tBOT and records the deposit.
+5. dApp updates TVL and Agent status automatically.
+
+---
+
+## 🧩 Project Structure
+
+```
+
+src/
+├── components/
+│   ├── ui/                  # UI components (Button, Dialog, etc.)
+│   ├── Web3Provider.tsx     # Provider for Wagmi + RainbowKit
+│   ├── TxDialog.tsx         # Deposit/withdraw transaction dialog
+│   └── TxDetailsDrawer.tsx  # On-chain transaction details
+├── hooks/
+│   ├── useVaultTvl.ts       # Hook to read vault TVL
+│   └── useLedger.ts         # Hook for transaction history
+├── lib/
+│   ├── chain-config.ts      # Network configuration (testnet/mainnet)
+│   ├── agents.ts            # AI Agents definition and strategies
+│   ├── activity-ledger.ts   # Transaction history storage (localStorage)
+│   └── wagmi.ts             # Wagmi + RainbowKit configuration
+├── routes/
+│   ├── app.agents.tsx       # Agents list page
+│   ├── app.index.tsx        # Dashboard page
+│   ├── app.transactions.tsx # Transaction history page
+│   └── app.vaults.tsx       # Vaults page
+└── styles.css               # Global styles (Tailwind)
+
+```
+
+---
+
+## ⚙️ Environment Configuration (`.env`)
+
+```env
+VITE_WALLETCONNECT_PROJECT_ID=7f5230a2da0f45798f150d028660356f
+VITE_BOT_NETWORK=testnet
+
+# AI Agent vault contracts (BOT Chain). Deposit/withdraw stays disabled while empty.
+VITE_VAULT_YIELDS_AGGREGATOR=0x0181B154eC37227511e6707FF647048a771621b5
+VITE_VAULT_STABLE_LP_HUNTER=0x0181B154eC37227511e6707FF647048a771621b5
+VITE_VAULT_DELTA_NEUTRAL=0x0181B154eC37227511e6707FF647048a771621b5
+```
+
+---
+
+📜 Compliance & Anti-Cheating
+
+· No Wash Trading: No features that encourage self-trading or artificial volume.
+· Real On-chain Data: All performance data is fetched from real on-chain sources, not random dummy data.
+· Daily Interaction Limit: Max 20 interactions per address per day, in compliance with community rules.
+
+---
+
+🛠️ Development
+
+Prefer working locally? Install Node.js and npm, then:
 
 ```sh
 git clone <this-repository-url>
 cd <repository-name>
 npm i
 npm run dev
+```
+
+---
+
+📄 License
+
+This project is open-source and available for collaboration. All code is owned by the project owner and contributors.
+
 ```
