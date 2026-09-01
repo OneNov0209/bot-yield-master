@@ -43,7 +43,6 @@ export function TxDialog({
     }
   }, [amount]);
 
-  // Baca shares user dari kontrak (untuk withdraw)
   const { data: userShares } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
@@ -53,7 +52,6 @@ export function TxDialog({
     query: { enabled: !!vault && !!address },
   });
 
-  // Baca total deposit user dari kontrak (untuk withdraw)
   const { data: userDeposited } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
@@ -116,7 +114,14 @@ export function TxDialog({
             </p>
             <h3 className="mt-1 text-lg">{agent.name}</h3>
           </div>
-          <button onClick={onClose} aria-label="Close" className="text-muted-foreground">
+          <button
+            onClick={() => {
+              // Fix: Panggil onClose dengan benar
+              onClose();
+            }}
+            aria-label="Close"
+            className="text-muted-foreground"
+          >
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -201,14 +206,12 @@ export function TxDialog({
                 onClick={() => {
                   setStep("signing");
                   if (mode === "deposit") {
-                    // Deposit: kirim tBOT native langsung ke kontrak
                     sendTransaction({ to: vault!, value: value! });
                   } else {
-                    // Withdraw: Panggil fungsi withdraw(shares) dengan shares yang BENAR
                     const sharesToWithdraw = userShares ? BigInt(userShares) : 0n;
                     sendTransaction({
                       to: vault!,
-                      data: `0x2e1a7d4d${sharesToWithdraw.toString(16).padStart(64, "0")}`, // withdraw(uint256)
+                      data: `0x2e1a7d4d${sharesToWithdraw.toString(16).padStart(64, "0")}`,
                     });
                   }
                 }}
@@ -276,7 +279,10 @@ export function TxDialog({
               </a>
             )}
             <button
-              onClick={onClose}
+              onClick={() => {
+                // Fix: Panggil onClose dengan benar
+                onClose();
+              }}
               className="mt-3 w-full rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground"
             >
               Done
