@@ -8,7 +8,7 @@ import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
 import { NETWORK } from "@/lib/chain-config";
 import { AGENTS } from "@/lib/agents";
 import { useVaultTvl } from "@/hooks/useVaultTvl";
-import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
+import { ChartFrame } from "@/components/charts"; // Hanya import ChartFrame
 import { allocationByAgent, cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 
 export const Route = createFileRoute("/app/")({
@@ -132,21 +132,47 @@ function Dashboard() {
           subtitle="Net position share from confirmed transactions"
           empty={allocation.length === 0 ? "No positions yet." : undefined}
         >
-          <SharePie data={allocation} />
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {allocation.map((d, i) => (
+              <div key={i} className="flex items-center gap-1 text-xs">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                <span>{d.agentId}</span>
+                <span className="text-muted-foreground">{d.amount.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
         </ChartFrame>
         <ChartFrame
           title="Deposit vs withdrawal"
           subtitle="Signed volume split"
           empty={split.length === 0 ? "No signed volume yet." : undefined}
         >
-          <SharePie data={split} donut={false} />
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {split.map((d, i) => (
+              <div key={i} className="flex items-center gap-1 text-xs">
+                <span className="h-2 w-2 rounded-full bg-green-500" />
+                <span>{d.name}</span>
+                <span className="text-muted-foreground">{d.value.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
         </ChartFrame>
         <ChartFrame
           title="Cumulative position"
           subtitle="Running net balance over time"
           empty={series.length === 0 ? "No activity to plot yet." : undefined}
         >
-          <ActivityLine data={series} label={NETWORK.symbol} />
+          <div className="flex h-full items-end gap-2">
+            {series.map((d, i) => (
+              <div key={i} className="flex flex-1 flex-col items-center gap-1">
+                <div
+                  className="w-full rounded-t-md bg-primary"
+                  style={{ height: `${Math.max(5, Math.abs(d.value))}px` }}
+                />
+                <p className="text-xs text-muted-foreground">{d.date}</p>
+              </div>
+            ))}
+          </div>
         </ChartFrame>
       </div>
 
