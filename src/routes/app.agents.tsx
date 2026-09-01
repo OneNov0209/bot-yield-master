@@ -35,7 +35,7 @@ export const Route = createFileRoute("/app/agents")({
 });
 
 function Agents() {
-  const { entries, positionFor, refresh } = useLedger();
+  const { positionFor, refresh } = useLedger();
   const issues = validateVaultConfig();
   const [dialog, setDialog] = useState<{
     agent: AgentStrategy;

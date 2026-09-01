@@ -34,6 +34,8 @@ export function TxDialog({
   const { address } = useAccount();
   const queryClient = useQueryClient();
   const submittedRef = useRef(false);
+  const handledHashRef = useRef<string>();
+  const handledErrorRef = useRef<string>();
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const { data: balance } = useBalance({ address });
@@ -53,11 +55,17 @@ export function TxDialog({
   const { sendTransaction, data: hash, isPending, error } = useSendTransaction();
   const { data: receipt, isLoading: confirming } = useWaitForTransactionReceipt({ hash });
 
-  // Wajib dipanggil ini: mencegah pengiriman ulang saat isPending
-  const hasSubmitted = useMemo(() => step === "signing", [step]);
+  const hasSubmitted = step === "signing";
 
   useEffect(() => {
-    if (receipt?.status === "success" && hash && address && amount) {
+    if (
+      receipt?.status === "success" &&
+      hash &&
+      address &&
+      amount &&
+      handledHashRef.current !== hash
+    ) {
+      handledHashRef.current = hash;
       addEntry({
         hash,
         type: mode,
@@ -79,7 +87,21 @@ export function TxDialog({
       });
     }
 
-    if (error) {
+    if (receipt?.status === "reverted" && hash && handledHashRef.current !== hash) {
+      handledHashRef.current = hash;
+      submittedRef.current = false;
+      toast.error("Transaction Failed", {
+        description: "The transaction was reverted on-chain.",
+        action: {
+          label: "View Details",
+          onClick: () => window.open(explorerTx(hash), "_blank"),
+        },
+      });
+    }
+
+    if (error && handledErrorRef.current !== error.message) {
+      handledErrorRef.current = error.message;
+      submittedRef.current = false;
       toast.error("Transaction Failed", {
         description: error.message.slice(0, 160) || "Transaction rejected",
       });
