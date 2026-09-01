@@ -1,44 +1,40 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-interface IERC20 {
-    function transferFrom(address from, address to, uint256 amount) external returns (bool);
-    function transfer(address to, uint256 amount) external returns (bool);
-    function balanceOf(address account) external view returns (uint256);
-}
-
-contract PremiumNativeVault {
-    // ============ STATE ============
+contract PremiumYieldVault {
     address public owner;
     address public treasury;
     address public aiAgent;
-    address public token; // ERC-20 yang diterima (bisa 0 jika hanya native)
 
-    uint256 public performanceFee = 500; // 5% (basis points)
     uint256 public totalShares;
-    mapping(address => uint256) public shares;
+    uint256 public totalDeposited;
+    uint256 public accumulatedProfit;
 
-    // ============ EVENTS ============
+    uint256 public performanceFee = 1000;
+    uint256 public withdrawalFee = 100;
+
+    mapping(address => uint256) public userShares;
+    mapping(address => uint256) public userDeposited;
+
     event Deposited(address indexed user, uint256 amount, uint256 shares);
     event Withdrawn(address indexed user, uint256 amount, uint256 shares);
-    event TokenDeposited(address indexed user, address indexed token, uint256 amount, uint256 shares);
+    event ProfitAdded(uint256 amount, uint256 timestamp);
     event StrategyExecuted(address indexed agent, uint256 timestamp);
+    event FeesCollected(uint256 performanceFee, uint256 withdrawalFee);
 
-    // ============ MODIFIERS ============
-    modifier onlyOwner() { require(msg.sender == owner, "Not owner"); _; }
-    modifier onlyAgent() { require(msg.sender == aiAgent || msg.sender == owner, "Not authorized"); _; }
-
-    // ============ CONSTRUCTOR ============
-    constructor(address _treasury, address _token) {
-        require(_treasury != address(0), "Invalid treasury");
-        owner = msg.sender;
-        treasury = _treasury;
-        token = _token; // Bisa 0 jika hanya native
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not owner");
+        _;
     }
 
-    // ============ ADMIN ============
-    function setTreasury(address _treasury) external onlyOwner {
-        require(_treasury != address(0), "Invalid address");
+    modifier onlyAgent() {
+        require(msg.sender == aiAgent || msg.sender == owner, "Not authorized");
+        _;
+    }
+
+    constructor(address _treasury) {
+        require(_treasury != address(0), "Invalid treasury");
+        owner = msg.sender;
         treasury = _treasury;
     }
 
@@ -47,57 +43,86 @@ contract PremiumNativeVault {
         aiAgent = _agent;
     }
 
-    function setToken(address _token) external onlyOwner {
-        token = _token;
+    function setTreasury(address _treasury) external onlyOwner {
+        require(_treasury != address(0), "Invalid address");
+        treasury = _treasury;
     }
 
     function setPerformanceFee(uint256 _fee) external onlyOwner {
-        require(_fee <= 1000, "Fee too high");
+        require(_fee <= 2000, "Fee too high");
         performanceFee = _fee;
     }
 
-    // ============ NATIVE DEPOSIT (tBOT langsung) ============
+    function setWithdrawalFee(uint256 _fee) external onlyOwner {
+        require(_fee <= 500, "Fee too high");
+        withdrawalFee = _fee;
+    }
+
     receive() external payable {
-        _mintShares(msg.sender, msg.value);
-        emit Deposited(msg.sender, msg.value, msg.value);
+        _deposit(msg.sender, msg.value);
     }
 
-    function depositNative() external payable {
-        _mintShares(msg.sender, msg.value);
-        emit Deposited(msg.sender, msg.value, msg.value);
+    function deposit() external payable {
+        _deposit(msg.sender, msg.value);
     }
 
-    // ============ ERC-20 DEPOSIT ============
-    function depositToken(uint256 _amount) external {
-        require(token != address(0), "Token not set");
-        require(IERC20(token).transferFrom(msg.sender, address(this), _amount), "Transfer failed");
-        _mintShares(msg.sender, _amount);
-        emit TokenDeposited(msg.sender, token, _amount, _amount);
+    function _deposit(address _user, uint256 _amount) internal {
+        require(_amount > 0, "Amount must be > 0");
+
+        uint256 sharesToMint;
+        if (totalShares == 0) {
+            sharesToMint = _amount;
+        } else {
+            sharesToMint = (_amount * totalShares) / totalDeposited;
+        }
+
+        userShares[_user] += sharesToMint;
+        userDeposited[_user] += _amount;
+        totalShares += sharesToMint;
+        totalDeposited += _amount;
+
+        emit Deposited(_user, _amount, sharesToMint);
     }
 
-    // ============ WITHDRAW ============
-function withdraw(uint256 _shares) external {
-    require(shares[msg.sender] >= _shares, "Insufficient shares");
-    uint256 totalBalance = address(this).balance;
-    uint256 amount = (_shares * totalBalance) / totalShares;
-    uint256 fee = (amount * performanceFee) / 10000;
-    uint256 amountAfterFee = amount - fee;
+    function withdraw(uint256 _shares) external {
+        require(userShares[msg.sender] >= _shares, "Insufficient shares");
 
-    shares[msg.sender] -= _shares;
-    totalShares -= _shares;
+        uint256 amount = (_shares * totalDeposited) / totalShares;
+        uint256 profit = amount - userDeposited[msg.sender];
 
-    // Menggunakan call agar tidak rentan terhadap gas limit
-    (bool success, ) = payable(msg.sender).call{value: amountAfterFee}("");
-    require(success, "Transfer to user failed");
+        uint256 fee;
+        if (profit > 0) {
+            fee = (profit * performanceFee) / 10000;
+            amount -= fee;
+        }
 
-    if (fee > 0) {
-        (bool feeSuccess, ) = payable(treasury).call{value: fee}("");
-        require(feeSuccess, "Fee transfer failed");
+        uint256 withdrawFeeAmt = (amount * withdrawalFee) / 10000;
+        amount -= withdrawFeeAmt;
+
+        userShares[msg.sender] -= _shares;
+        totalShares -= _shares;
+        totalDeposited -= amount + fee + withdrawFeeAmt;
+
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Transfer failed");
+
+        if (fee > 0 || withdrawFeeAmt > 0) {
+            (bool feeSuccess, ) = payable(treasury).call{value: fee + withdrawFeeAmt}("");
+            require(feeSuccess, "Fee transfer failed");
+            emit FeesCollected(fee, withdrawFeeAmt);
+        }
+
+        emit Withdrawn(msg.sender, amount, _shares);
     }
-    emit Withdrawn(msg.sender, amountAfterFee, _shares);
-}
 
-    // ============ AI AGENT STRATEGY EXECUTION ============
+    function addProfit(uint256 _amount) external payable onlyAgent {
+        require(msg.value == _amount, "Value mismatch");
+        accumulatedProfit += _amount;
+        totalDeposited += _amount;
+
+        emit ProfitAdded(_amount, block.timestamp);
+    }
+
     function executeStrategy(address _target, uint256 _amount, bytes calldata _data) external onlyAgent returns (bool) {
         require(_amount <= address(this).balance, "Insufficient balance");
         (bool success, ) = _target.call{value: _amount}(_data);
@@ -106,23 +131,29 @@ function withdraw(uint256 _shares) external {
         return true;
     }
 
-    // ============ VIEW ============
     function getBalance() external view returns (uint256) {
         return address(this).balance;
     }
 
     function getUserShares(address _user) external view returns (uint256) {
-        return shares[_user];
+        return userShares[_user];
     }
 
-    function _mintShares(address _user, uint256 _amount) internal {
-        if (totalShares == 0) {
-            shares[_user] = _amount;
-            totalShares = _amount;
-        } else {
-            uint256 newShares = (_amount * totalShares) / address(this).balance;
-            shares[_user] += newShares;
-            totalShares += newShares;
-        }
+    function getUserDeposited(address _user) external view returns (uint256) {
+        return userDeposited[_user];
+    }
+
+    function getUserProfit(address _user) external view returns (uint256) {
+        if (userShares[_user] == 0) return 0;
+        uint256 currentValue = (userShares[_user] * totalDeposited) / totalShares;
+        return currentValue - userDeposited[_user];
+    }
+
+    function getTotalDeposited() external view returns (uint256) {
+        return totalDeposited;
+    }
+
+    function getAccumulatedProfit() external view returns (uint256) {
+        return accumulatedProfit;
     }
 }
