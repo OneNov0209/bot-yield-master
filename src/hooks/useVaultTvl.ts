@@ -92,3 +92,30 @@ export function useVaultBalanceAndProfit(address?: `0x${string}` | undefined) {
     refetch,
   };
 }
+
+/** Function to return all vault readings + aggregate TVL. */
+export function useVaultTvl() {
+  const a = useVaultBalance(AGENTS[0]?.vault);
+  const b = useVaultBalance(AGENTS[1]?.vault);
+  const c = useVaultBalance(AGENTS[2]?.vault);
+  const readings = [a, b, c];
+
+  const vaults = AGENTS.map((agent, i) => {
+    const r = readings[i] ?? { balance: 0, isLoading: false, error: null };
+    return {
+      agentId: agent.id,
+      name: agent.name,
+      address: agent.vault,
+      balance: r.balance,
+      isLoading: r.isLoading,
+      error: r.error,
+    };
+  });
+
+  const configured = VAULT_ADDRESSES.length > 0;
+  const isLoading = readings.some((r) => r.isLoading);
+  const error = readings.find((r) => r.error)?.error ?? null;
+  const tvl = vaults.reduce((sum, v) => sum + v.balance, 0);
+
+  return { tvl, vaults, configured, isLoading, error };
+}
