@@ -4,8 +4,7 @@ import { useReadContract, useAccount } from "wagmi";
 import { AGENTS } from "@/lib/agents";
 import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
 import { botChain } from "@/lib/chain-config";
-import { LEDGER_EVENT } from "@/lib/activity-ledger";
-import { getEntries } from "@/lib/activity-ledger";
+import { LEDGER_EVENT, getEntries } from "@/lib/activity-ledger";
 
 export type LedgerPosition = {
   net: number;
@@ -64,7 +63,7 @@ export function useLedger() {
   };
 
   return {
-    entries, // SELALU array
+    entries,
     usage: {
       used: entries.length,
       limit: 20,
@@ -85,7 +84,6 @@ export function useLedger() {
   };
 }
 
-/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
 export function useMonthlyFlow(entries: any[] = []) {
   const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
   const uniqueMonths = Array.from(
