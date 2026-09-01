@@ -16,7 +16,7 @@ export function useLedger() {
   const { address } = useAccount();
   const [entries, setEntries] = useState<any[]>([]);
 
-  // Membaca data dari SEMUA vault
+  // Membaca deposit user dari SEMUA vault
   const deposits = AGENTS.map((agent) => {
     const { data } = useReadContract({
       address: agent.vault,
@@ -29,6 +29,7 @@ export function useLedger() {
     return data ? Number(formatEther(data as bigint)) : 0;
   });
 
+  // Membaca profit user dari SEMUA vault
   const profits = AGENTS.map((agent) => {
     const { data } = useReadContract({
       address: agent.vault,
@@ -43,7 +44,6 @@ export function useLedger() {
 
   useEffect(() => {
     const onLedger = () => {
-      // Trigger refetch semua vault saat ada event
       window.dispatchEvent(new Event("force-refetch"));
     };
     window.addEventListener(LEDGER_EVENT, onLedger);
