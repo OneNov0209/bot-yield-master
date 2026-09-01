@@ -15,7 +15,9 @@
     "rolldown": "1.2.1",
     "@coinbase/cdp-sdk": "npm:@coinbase/cdp-sdk@latest",
     "@x402/evm": "npm:@x402/evm@latest",
-    "@x402/core": "npm:@x402/core@latest"
+    "@x402/core": "npm:@x402/core@latest",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -63,7 +65,6 @@
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.71.2",
     "react-resizable-panels": "^4.6.5",
-    "recharts": "^2.15.4",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
