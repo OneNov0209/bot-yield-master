@@ -6,10 +6,6 @@ export type AgentStrategy = {
   tagline: string;
   description: string;
   risk: "Low" | "Medium" | "High";
-  /**
-   * Vault contract that receives deposits. Provided per-deployment through env so no
-   * address is hardcoded to a live treasury by mistake. Deposits stay disabled while unset.
-   */
   vault?: Address | undefined;
 };
 
