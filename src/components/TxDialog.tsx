@@ -1,11 +1,10 @@
 import { CheckCircle2, ExternalLink, Loader2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { formatEther, parseEther, parseGwei, type Address } from "viem";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { formatEther, parseEther, type Address } from "viem";
 import {
   useAccount,
   useBalance,
-  usePublicClient,
+  useReadContract,
   useSendTransaction,
   useWaitForTransactionReceipt,
 } from "wagmi";
@@ -13,13 +12,10 @@ import { toast } from "sonner";
 import { addEntry, getDailyUsage } from "@/lib/activity-ledger";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { AGENT_TARGET_APY as ESTIMATED_APY, type AgentStrategy } from "@/lib/agents";
-import { useVaultBalance } from "@/hooks/useVaultTvl";
+import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
 
 type Mode = "deposit" | "withdraw";
 type Step = "amount" | "preview" | "signing" | "done";
-
-const DEFAULT_GAS_LIMIT = 300_000n;
-const DEFAULT_MAX_FEE_PER_GAS = parseGwei("30");
 
 export function TxDialog({
   agent,
@@ -33,10 +29,6 @@ export function TxDialog({
   onClose: () => void;
 }) {
   const { address } = useAccount();
-  const queryClient = useQueryClient();
-  const submittedRef = useRef(false);
-  const handledHashRef = useRef<string | undefined>(undefined);
-  const handledErrorRef = useRef<string | undefined>(undefined);
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const { data: balance } = useBalance({ address });
@@ -51,55 +43,29 @@ export function TxDialog({
     }
   }, [amount]);
 
-  const gasCost = DEFAULT_GAS_LIMIT * DEFAULT_MAX_FEE_PER_GAS;
+  const { data: shares } = useReadContract({
+    address: vault,
+    abi: AUTO_VAULT_ABI,
+    functionName: "getUserShares",
+    chainId: NETWORK.id,
+    args: address ? [address] : undefined,
+    query: { enabled: !!vault && !!address },
+  });
+
+  const { data: userProfit } = useReadContract({
+    address: vault,
+    abi: AUTO_VAULT_ABI,
+    functionName: "getUserProfit",
+    chainId: NETWORK.id,
+    args: address ? [address] : undefined,
+    query: { enabled: !!vault && !!address },
+  });
 
   const { sendTransaction, data: hash, isPending, error } = useSendTransaction();
   const { data: receipt, isLoading: confirming } = useWaitForTransactionReceipt({ hash });
 
-  const hasSubmitted = step === "signing";
-
-  // Real pre-flight simulation against the RPC: if the vault rejects a plain
-  // native transfer the user is told here instead of paying for a reverted tx.
-  const publicClient = usePublicClient();
-  const [simulating, setSimulating] = useState(false);
-  const [simError, setSimError] = useState<string | undefined>(undefined);
-
   useEffect(() => {
-    if (step !== "preview" || !publicClient || !vault || !value || !address) return;
-    let cancelled = false;
-    setSimulating(true);
-    setSimError(undefined);
-    publicClient
-      .estimateGas({ account: address, to: vault, value })
-      .then(() => {
-        if (!cancelled) setSimError(undefined);
-      })
-      .catch((e: unknown) => {
-        if (cancelled) return;
-        const raw = e instanceof Error ? e.message : String(e);
-        setSimError(
-          /revert|execution reverted|invalid opcode|out of gas/i.test(raw)
-            ? `Simulation reverted: the contract at ${vault.slice(0, 6)}…${vault.slice(-4)} does not accept a plain ${NETWORK.symbol} transfer. This vault address is not a native-token vault, so deposits can never succeed with it.`
-            : raw.split("\n")[0]!.slice(0, 200),
-        );
-      })
-      .finally(() => {
-        if (!cancelled) setSimulating(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [step, publicClient, vault, value, address]);
-
-  useEffect(() => {
-    if (
-      receipt?.status === "success" &&
-      hash &&
-      address &&
-      amount &&
-      handledHashRef.current !== hash
-    ) {
-      handledHashRef.current = hash;
+    if (receipt?.status === "success" && hash && address && amount) {
       addEntry({
         hash,
         type: mode,
@@ -109,7 +75,6 @@ export function TxDialog({
         chainId: NETWORK.id,
         timestamp: Date.now(),
       });
-      void queryClient.invalidateQueries();
       setStep("done");
 
       toast.success("Transaction Confirmed!", {
@@ -121,26 +86,12 @@ export function TxDialog({
       });
     }
 
-    if (receipt?.status === "reverted" && hash && handledHashRef.current !== hash) {
-      handledHashRef.current = hash;
-      submittedRef.current = false;
-      toast.error("Transaction Failed", {
-        description: "The transaction was reverted on-chain.",
-        action: {
-          label: "View Details",
-          onClick: () => window.open(explorerTx(hash), "_blank"),
-        },
-      });
-    }
-
-    if (error && handledErrorRef.current !== error.message) {
-      handledErrorRef.current = error.message;
-      submittedRef.current = false;
+    if (error) {
       toast.error("Transaction Failed", {
         description: error.message.slice(0, 160) || "Transaction rejected",
       });
     }
-  }, [receipt, hash, address, amount, mode, agent.id, error, queryClient]);
+  }, [receipt, hash, address, amount, mode, agent.id, error]);
 
   const numeric = Number(amount);
   const overBalance =
@@ -230,26 +181,19 @@ export function TxDialog({
               value={`${vault?.slice(0, 6)}…${vault?.slice(-4)}`}
             />
             <Row label="Network" value={`${NETWORK.name} · ${NETWORK.id}`} />
-            <Row label="Gas limit" value={`${DEFAULT_GAS_LIMIT.toString()} (fixed cap)`} />
+            <Row label="Gas limit" value={gasLimit ? gasLimit.toString() : "estimating…"} />
             <Row
               label="Est. network fee"
               value={
-                `${Number(formatEther(gasCost)).toFixed(6)} ${NETWORK.symbol} (maximum)`
+                gasCost
+                  ? `${Number(formatEther(gasCost)).toFixed(6)} ${NETWORK.symbol}`
+                  : "estimating…"
               }
             />
             <Row
               label="Est. ROI (1y)"
               value={`+${estYearly.toFixed(4)} ${NETWORK.symbol} @ ${ESTIMATED_APY[agent.risk]}% target APY`}
             />
-            <Row
-              label="Simulation"
-              value={simulating ? "Running…" : simError ? "Will fail" : "Passed"}
-            />
-            {simError && (
-              <p className="rounded-lg border border-destructive/40 bg-surface p-3 text-xs text-destructive">
-                {simError}
-              </p>
-            )}
             {error && <p className="text-xs text-destructive">{error.message.slice(0, 160)}</p>}
             <div className="flex gap-2 pt-2">
               <button
@@ -259,19 +203,10 @@ export function TxDialog({
                 Back
               </button>
               <button
-                disabled={
-                  !vault || !value || isPending || confirming || hasSubmitted || simulating || !!simError
-                }
+                disabled={!vault || !value || isPending || confirming || usage.blocked}
                 onClick={() => {
-                  if (!vault || !value || submittedRef.current || isPending || confirming) return;
-                  submittedRef.current = true;
                   setStep("signing");
-                  sendTransaction({
-                    to: vault,
-                    value,
-                    gas: DEFAULT_GAS_LIMIT,
-                    maxFeePerGas: DEFAULT_MAX_FEE_PER_GAS,
-                  });
+                  sendTransaction({ to: vault!, value: value! });
                 }}
                 className="flex-1 rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
@@ -305,10 +240,7 @@ export function TxDialog({
             )}
             {error && (
               <button
-                onClick={() => {
-                  submittedRef.current = false;
-                  setStep("preview");
-                }}
+                onClick={() => setStep("preview")}
                 className="mt-2 rounded-lg border border-border px-4 py-2 text-sm"
               >
                 Back
