@@ -21,6 +21,7 @@ contract AutoYieldVault {
     event Deposited(address indexed user, uint256 amount, uint256 shares);
     event Withdrawn(address indexed user, uint256 amount, uint256 shares);
     event ProfitAccrued(uint256 amount, uint256 timestamp);
+    event FeeCollected(address indexed treasury, uint256 amount);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Not owner");
@@ -128,9 +129,16 @@ contract AutoYieldVault {
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         require(success, "Transfer failed");
 
-        if (fee > 0 || withdrawFeeAmt > 0) {
-            (bool feeSuccess, ) = payable(treasury).call{value: fee + withdrawFeeAmt}("");
+        if (fee > 0) {
+            (bool feeSuccess, ) = payable(treasury).call{value: fee}("");
             require(feeSuccess, "Fee transfer failed");
+            emit FeeCollected(treasury, fee);
+        }
+
+        if (withdrawFeeAmt > 0) {
+            (bool feeSuccess, ) = payable(treasury).call{value: withdrawFeeAmt}("");
+            require(feeSuccess, "Fee transfer failed");
+            emit FeeCollected(treasury, withdrawFeeAmt);
         }
 
         emit Withdrawn(msg.sender, amount, _shares);
