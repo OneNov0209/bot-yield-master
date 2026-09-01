@@ -1,50 +1,45 @@
-import { useCallback, useEffect, useState } from "react";
-import { useAccount } from "wagmi";
-import {
-  getDailyUsage,
-  getEntries,
-  LEDGER_EVENT,
-  type LedgerEntry,
-} from "@/lib/activity-ledger";
+import { useEffect, useMemo, useState } from "react";
+import { formatEther } from "viem";
+import { useReadContract, useAccount } from "wagmi";
+import { AGENTS } from "@/lib/agents";
+import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
+import { botChain } from "@/lib/chain-config";
 
 export function useLedger() {
   const { address } = useAccount();
-  const [entries, setEntries] = useState<LedgerEntry[]>([]);
 
-  const refresh = useCallback(() => {
-    setEntries(getEntries(address));
-  }, [address]);
+  // Membaca deposit user dari kontrak
+  const { data: totalDeposited, refetch: refetchDeposited } = useReadContract({
+    address: AGENTS[0]?.vault,
+    abi: AUTO_VAULT_ABI,
+    functionName: "getUserDeposited",
+    chainId: botChain.id,
+    args: address ? [address] : undefined,
+    query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
+  });
+
+  // Membaca profit user dari kontrak
+  const { data: userProfit, refetch: refetchProfit } = useReadContract({
+    address: AGENTS[0]?.vault,
+    abi: AUTO_VAULT_ABI,
+    functionName: "getUserProfit",
+    chainId: botChain.id,
+    args: address ? [address] : undefined,
+    query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
+  });
 
   useEffect(() => {
-    refresh();
-    window.addEventListener(LEDGER_EVENT, refresh);
-    return () => window.removeEventListener(LEDGER_EVENT, refresh);
-  }, [refresh]);
+    const onLedger = () => {
+      void refetchDeposited();
+      void refetchProfit();
+    };
+    window.addEventListener(LEDGER_EVENT, onLedger);
+    return () => window.removeEventListener(LEDGER_EVENT, onLedger);
+  }, [refetchDeposited, refetchProfit]);
 
-  const usage = getDailyUsage(address);
-
-  const positionFor = (agentId: string) => {
-    const rows = entries.filter((e) => e.agentId === agentId);
-    const net = rows.reduce(
-      (sum, e) => sum + (e.type === "deposit" ? Number(e.amount) : -Number(e.amount)),
-      0,
-    );
-    return { net: Math.max(0, net), count: rows.length, active: net > 0 };
+  return {
+    deposits: totalDeposited ? Number(formatEther(totalDeposited)) : 0,
+    profit: userProfit ? Number(formatEther(userProfit)) : 0,
+    status: "reading-onchain",
   };
-
-  return { entries, usage, positionFor, refresh, address };
-}
-
-/** Monthly net inflow per address, derived from confirmed on-chain transactions. */
-export function useMonthlyFlow(entries: LedgerEntry[]) {
-  const buckets = new Map<string, number>();
-  for (const e of entries) {
-    const d = new Date(e.timestamp);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-    const delta = e.type === "deposit" ? Number(e.amount) : -Number(e.amount);
-    buckets.set(key, (buckets.get(key) ?? 0) + delta);
-  }
-  return [...buckets.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, value]) => ({ month, value: Number(value.toFixed(4)) }));
 }
