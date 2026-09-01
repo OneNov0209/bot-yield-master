@@ -6,7 +6,6 @@ export type ActivityMetric = {
   amount: number;
 };
 
-/** Menghitung aliran masuk/keluar bulanan. */
 export function getMonthlyFlow(entries: any[] = []): ActivityMetric[] {
   const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
   const uniqueMonths = Array.from(
@@ -36,8 +35,7 @@ export function getMonthlyFlow(entries: any[] = []): ActivityMetric[] {
   });
 }
 
-/** Menghitung alokasi dana per agent. */
-export function allocationByAgent(entries: any[] = []) {
+export function getAgentAllocation(entries: any[] = []): Record<string, number> {
   const allocation: Record<string, number> = {};
   for (const e of entries) {
     const agentId = e.agentId;
@@ -51,22 +49,10 @@ export function allocationByAgent(entries: any[] = []) {
       allocation[agentId] -= amount;
     }
   }
-  return Object.entries(allocation).map(([agentId, amount]) => ({
-    agentId,
-    amount,
-  }));
+  return allocation;
 }
 
-/** Menghitung aliran masuk vs keluar (untuk pie chart). */
-export function flowSplit(entries: any[] = []) {
-  return [
-    { name: "Deposits", value: entries.filter((e) => e.type === "deposit").length },
-    { name: "Withdrawals", value: entries.filter((e) => e.type === "withdraw").length },
-  ];
-}
-
-/** Menghitung posisi kumulatif dari waktu ke waktu. */
-export function cumulativeSeries(entries: any[] = []) {
+export function getCumulativePosition(entries: any[] = []): ActivityMetric[] {
   const sorted = [...entries].sort((a, b) => a.timestamp - b.timestamp);
   let runningBalance = 0;
 
@@ -78,24 +64,12 @@ export function cumulativeSeries(entries: any[] = []) {
       runningBalance -= amount;
     }
     return {
-      date: new Date(e.timestamp).toISOString(),
-      value: runningBalance,
+      month: new Date(e.timestamp).toISOString(),
+      amount: runningBalance,
     };
   });
 }
 
-/** Menghitung porsi TVL per vault (untuk pie chart). */
-export function vaultShare(vaults: { name: string; balance: number }[] = []) {
-  const total = vaults.reduce((sum, v) => sum + v.balance, 0);
-  if (total === 0) return [];
-  return vaults.map((v) => ({
-    name: v.name,
-    value: v.balance,
-    share: (v.balance / total) * 100,
-  }));
-}
-
-/** Membaca status agent. */
 export function getAgentStatuses() {
   return AGENTS.map((agent) => ({
     agentId: agent.id,
@@ -106,7 +80,6 @@ export function getAgentStatuses() {
   }));
 }
 
-/** Membaca batas interaksi harian. */
 export function getDailyUsage(address?: string) {
   const used = 0;
   return {
@@ -117,6 +90,31 @@ export function getDailyUsage(address?: string) {
   };
 }
 
+export function allocationByAgent(entries: any[] = []) {
+  return getAgentAllocation(entries);
+}
+
+export function cumulativeSeries(entries: any[] = []) {
+  return getCumulativePosition(entries);
+}
+
+export function flowSplit(entries: any[] = []) {
+  return {
+    deposits: entries.filter((e) => e.type === "deposit").length,
+    withdrawals: entries.filter((e) => e.type === "withdraw").length,
+  };
+}
+
+export function vaultShare(vaults: { name: string; balance: number }[] = []) {
+  const total = vaults.reduce((sum, v) => sum + v.balance, 0);
+  if (total === 0) return [];
+  return vaults.map((v) => ({
+    name: v.name,
+    value: v.balance,
+    share: (v.balance / total) * 100,
+  }));
+}
+
 export const monthlyFlow = getMonthlyFlow;
-export const agentAllocation = allocationByAgent;
-export const cumulativePosition = cumulativeSeries;
+export const agentAllocation = getAgentAllocation;
+export const cumulativePosition = getCumulativePosition;
