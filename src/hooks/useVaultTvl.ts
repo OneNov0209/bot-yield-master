@@ -50,7 +50,7 @@ export function useVaultBalance(address?: `0x${string}` | undefined) {
   const { data, isLoading, isError, error, refetch } = useBalance({
     address,
     chainId: botChain.id,
-    query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
+    query: { enabled: !!address, retry: 1, refetchInterval: 60_000 },
   });
 
   // Auto-refetch as soon as a deposit/withdraw is confirmed, so TVL and ROI
