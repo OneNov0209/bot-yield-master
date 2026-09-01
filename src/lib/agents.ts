@@ -44,7 +44,6 @@ export const AGENTS: AgentStrategy[] = [
   },
 ];
 
-/** Target APY per risk band, used for ROI projections shown in the UI. */
 export const AGENT_TARGET_APY: Record<AgentStrategy["risk"], number> = {
   Low: 6.5,
   Medium: 14.2,
