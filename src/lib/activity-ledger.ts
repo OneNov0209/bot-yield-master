@@ -29,12 +29,12 @@ export const VAULT_EVENTS_ABI = [
  * Mengembalikan riwayat transaksi user dengan membaca event dari blockchain.
  * Data ini tersedia di browser mana pun karena dibaca langsung dari RPC.
  */
-export function getEntries(address?: string) {
+export async function getEntries(address?: string) {
   if (!address || typeof window === "undefined") {
     return [];
   }
 
-  // Baca event dari kontrak menggunakan publicClient
+  // Baca event dari kontrak menggunakan publicClient (async)
   const logs = await publicClient.getLogs({
     address: "0xE1612F02C6DDA4BdD4e8F4f911754C5CA9327d28",
     event: VAULT_EVENTS_ABI[0],
