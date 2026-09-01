@@ -19,7 +19,7 @@ const publicClient = createPublicClient({
 
 export const LEDGER_EVENT = "bot-ai-agent:ledger-updated";
 
-/** ABI untuk membaca event Deposit dan Withdraw dari kontrak */
+// ABI untuk membaca event Deposit dan Withdraw dari kontrak
 export const VAULT_EVENTS_ABI = [
   parseAbiItem("event Deposited(address indexed user, uint256 amount, uint256 shares)"),
   parseAbiItem("event Withdrawn(address indexed user, uint256 amount, uint256 shares)"),
