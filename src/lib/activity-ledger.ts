@@ -19,24 +19,20 @@ const publicClient = createPublicClient({
 
 export const LEDGER_EVENT = "bot-ai-agent:ledger-updated";
 
-// ABI untuk membaca event Deposit dan Withdraw dari kontrak
+
 export const VAULT_EVENTS_ABI = [
   parseAbiItem("event Deposited(address indexed user, uint256 amount, uint256 shares)"),
   parseAbiItem("event Withdrawn(address indexed user, uint256 amount, uint256 shares)"),
 ] as const;
 
-/**
- * Mengembalikan riwayat transaksi user dengan membaca event dari blockchain.
- * Data ini tersedia di browser mana pun karena dibaca langsung dari RPC.
- */
 export async function getEntries(address?: string) {
   if (!address || typeof window === "undefined") {
     return [];
   }
 
-  // Baca event dari kontrak menggunakan publicClient (async)
+  
   const logs = await publicClient.getLogs({
-    address: "0xE1612F02C6DDA4BdD4e8F4f911754C5CA9327d28",
+    address: "0x9770030AB6A808945D6B4E8BEa599e9cfDc5D1A9",
     event: VAULT_EVENTS_ABI[0],
     args: { user: address as `0x${string}` },
     fromBlock: 0n,
@@ -55,11 +51,10 @@ export async function getEntries(address?: string) {
 }
 
 export function addEntry(entry: LedgerEntry) {
-  // Tidak perlu disimpan di localStorage lagi — semua data diambil dari blockchain.
+  
   window.dispatchEvent(new Event(LEDGER_EVENT));
 }
 
-/** Community rule: max DAILY_INTERACTION_LIMIT signed interactions per address per day. */
 export function getDailyUsage(address?: string) {
   const used = 0;
   return {
