@@ -34,8 +34,8 @@ export function TxDialog({
   const { address } = useAccount();
   const queryClient = useQueryClient();
   const submittedRef = useRef(false);
-  const handledHashRef = useRef<string>();
-  const handledErrorRef = useRef<string>();
+  const handledHashRef = useRef<string | undefined>(undefined);
+  const handledErrorRef = useRef<string | undefined>(undefined);
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const { data: balance } = useBalance({ address });
