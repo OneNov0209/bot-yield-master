@@ -34,9 +34,24 @@ export function getEntries(address?: string) {
     return [];
   }
 
-  // TODO: Implementasikan pembacaan event dari kontrak vault via RPC
-  // Ini memerlukan alamat vault dari agents.ts dan filter berdasarkan user address.
-  return [];
+  // Baca event dari kontrak menggunakan publicClient
+  const logs = await publicClient.getLogs({
+    address: "0xE1612F02C6DDA4BdD4e8F4f911754C5CA9327d28",
+    event: VAULT_EVENTS_ABI[0],
+    args: { user: address as `0x${string}` },
+    fromBlock: 0n,
+    toBlock: "latest",
+  });
+
+  return logs.map((log) => ({
+    hash: log.transactionHash,
+    type: "deposit" as const,
+    agentId: "yields-aggregator",
+    amount: log.args.amount.toString(),
+    address,
+    chainId: botChain.id,
+    timestamp: Number(log.blockNumber * 1000n),
+  }));
 }
 
 export function addEntry(entry: LedgerEntry) {
