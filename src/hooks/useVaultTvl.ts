@@ -5,7 +5,7 @@ import { AGENTS, VAULT_ADDRESSES } from "@/lib/agents";
 import { botChain } from "@/lib/chain-config";
 import { LEDGER_EVENT } from "@/lib/activity-ledger";
 
-// ABI untuk kontrak AutoYieldVault (SESUAI REMIX)
+// ABI untuk kontrak AutoYieldVault (SESUAI ABI BARU)
 export const AUTO_VAULT_ABI = [
   {
     inputs: [{ name: "_user", type: "address" }],
