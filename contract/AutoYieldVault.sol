@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-contract PremiumYieldVault {
+contract AutoYieldVault {
     address public owner;
     address public treasury;
     address public aiAgent;
@@ -9,7 +9,9 @@ contract PremiumYieldVault {
     uint256 public totalShares;
     uint256 public totalDeposited;
     uint256 public accumulatedProfit;
+    uint256 public lastProfitUpdate;
 
+    uint256 public dailyRate = 500;
     uint256 public performanceFee = 1000;
     uint256 public withdrawalFee = 100;
 
@@ -18,9 +20,7 @@ contract PremiumYieldVault {
 
     event Deposited(address indexed user, uint256 amount, uint256 shares);
     event Withdrawn(address indexed user, uint256 amount, uint256 shares);
-    event ProfitAdded(uint256 amount, uint256 timestamp);
-    event StrategyExecuted(address indexed agent, uint256 timestamp);
-    event FeesCollected(uint256 performanceFee, uint256 withdrawalFee);
+    event ProfitAccrued(uint256 amount, uint256 timestamp);
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Not owner");
@@ -36,6 +36,7 @@ contract PremiumYieldVault {
         require(_treasury != address(0), "Invalid treasury");
         owner = msg.sender;
         treasury = _treasury;
+        lastProfitUpdate = block.timestamp;
     }
 
     function setAIAgent(address _agent) external onlyOwner {
@@ -48,6 +49,11 @@ contract PremiumYieldVault {
         treasury = _treasury;
     }
 
+    function setDailyRate(uint256 _rate) external onlyOwner {
+        require(_rate <= 1000, "Rate too high");
+        dailyRate = _rate;
+    }
+
     function setPerformanceFee(uint256 _fee) external onlyOwner {
         require(_fee <= 2000, "Fee too high");
         performanceFee = _fee;
@@ -58,11 +64,26 @@ contract PremiumYieldVault {
         withdrawalFee = _fee;
     }
 
+    function _accrueProfit() internal {
+        uint256 timeElapsed = block.timestamp - lastProfitUpdate;
+        if (timeElapsed > 0) {
+            uint256 profit = (address(this).balance * dailyRate * timeElapsed) / (10000 * 1 days);
+            if (profit > 0) {
+                accumulatedProfit += profit;
+                totalDeposited += profit;
+                lastProfitUpdate = block.timestamp;
+                emit ProfitAccrued(profit, block.timestamp);
+            }
+        }
+    }
+
     receive() external payable {
+        _accrueProfit();
         _deposit(msg.sender, msg.value);
     }
 
     function deposit() external payable {
+        _accrueProfit();
         _deposit(msg.sender, msg.value);
     }
 
@@ -85,6 +106,7 @@ contract PremiumYieldVault {
     }
 
     function withdraw(uint256 _shares) external {
+        _accrueProfit();
         require(userShares[msg.sender] >= _shares, "Insufficient shares");
 
         uint256 amount = (_shares * totalDeposited) / totalShares;
@@ -109,26 +131,9 @@ contract PremiumYieldVault {
         if (fee > 0 || withdrawFeeAmt > 0) {
             (bool feeSuccess, ) = payable(treasury).call{value: fee + withdrawFeeAmt}("");
             require(feeSuccess, "Fee transfer failed");
-            emit FeesCollected(fee, withdrawFeeAmt);
         }
 
         emit Withdrawn(msg.sender, amount, _shares);
-    }
-
-    function addProfit(uint256 _amount) external payable onlyAgent {
-        require(msg.value == _amount, "Value mismatch");
-        accumulatedProfit += _amount;
-        totalDeposited += _amount;
-
-        emit ProfitAdded(_amount, block.timestamp);
-    }
-
-    function executeStrategy(address _target, uint256 _amount, bytes calldata _data) external onlyAgent returns (bool) {
-        require(_amount <= address(this).balance, "Insufficient balance");
-        (bool success, ) = _target.call{value: _amount}(_data);
-        require(success, "Strategy failed");
-        emit StrategyExecuted(msg.sender, block.timestamp);
-        return true;
     }
 
     function getBalance() external view returns (uint256) {
@@ -143,17 +148,35 @@ contract PremiumYieldVault {
         return userDeposited[_user];
     }
 
-    function getUserProfit(address _user) external view returns (uint256) {
-        if (userShares[_user] == 0) return 0;
-        uint256 currentValue = (userShares[_user] * totalDeposited) / totalShares;
-        return currentValue - userDeposited[_user];
+    function getNextProfit(address _user) external view returns (uint256 profit, uint256 total) {
+        uint256 timeElapsed = block.timestamp - lastProfitUpdate;
+        uint256 accrued = (address(this).balance * dailyRate * timeElapsed) / (10000 * 1 days);
+        if (accrued > 0) {
+            total = totalDeposited + accrued;
+        } else {
+            total = totalDeposited;
+        }
+        if (userShares[_user] == 0) {
+            return (0, total);
+        }
+        uint256 currentValue = (userShares[_user] * total) / totalShares;
+        profit = currentValue - userDeposited[_user];
+        return (profit, total);
     }
 
     function getTotalDeposited() external view returns (uint256) {
-        return totalDeposited;
+        uint256 timeElapsed = block.timestamp - lastProfitUpdate;
+        uint256 accrued = (address(this).balance * dailyRate * timeElapsed) / (10000 * 1 days);
+        return totalDeposited + accrued;
     }
 
     function getAccumulatedProfit() external view returns (uint256) {
-        return accumulatedProfit;
+        uint256 timeElapsed = block.timestamp - lastProfitUpdate;
+        uint256 accrued = (address(this).balance * dailyRate * timeElapsed) / (10000 * 1 days);
+        return accumulatedProfit + accrued;
+    }
+
+    function getProfitRate() external view returns (uint256) {
+        return dailyRate;
     }
 }
