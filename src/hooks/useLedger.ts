@@ -16,7 +16,7 @@ export function useLedger() {
   const { address } = useAccount();
   const [entries, setEntries] = useState<any[]>([]);
 
-  
+  // MEMBACA DATA DARI 1 KONTRAK SAJA (gunakan vault pertama sebagai referensi)
   const vault = AGENTS[0]?.vault;
 
   const { data: totalDeposited } = useReadContract({
@@ -54,7 +54,7 @@ export function useLedger() {
       blocked: false,
     },
     positionFor: (agentId: string): LedgerPosition => {
-      
+      // Karena 1 kontrak untuk semua agent, data yang sama dipakai untuk semua agent
       const net = (totalDeposited ? Number(formatEther(totalDeposited)) : 0) +
                   (userProfit ? Number(formatEther(userProfit)) : 0);
       return {
@@ -67,6 +67,7 @@ export function useLedger() {
   };
 }
 
+/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
 export function useMonthlyFlow(entries: any[] = []) {
   const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
   const uniqueMonths = Array.from(
