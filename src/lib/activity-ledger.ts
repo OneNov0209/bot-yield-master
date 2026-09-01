@@ -1,5 +1,4 @@
-import { createPublicClient, http } from "viem";
-import { botChain } from "./chain-config";
+import { DAILY_INTERACTION_LIMIT } from "./chain-config";
 
 export type LedgerEntry = {
   hash: string;
@@ -11,53 +10,45 @@ export type LedgerEntry = {
   timestamp: number;
 };
 
-const publicClient = createPublicClient({
-  chain: botChain,
-  transport: http(),
-});
+const KEY = "bot-ai-agent:ledger:v1";
+
+function read(): LedgerEntry[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(KEY);
+    return raw ? (JSON.parse(raw) as LedgerEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function write(entries: LedgerEntry[]) {
+  window.localStorage.setItem(KEY, JSON.stringify(entries.slice(0, 500)));
+}
 
 export const LEDGER_EVENT = "bot-ai-agent:ledger-updated";
 
-// ABI untuk membaca event Deposit dan Withdraw dari AutoYieldVault
-const VAULT_EVENTS_ABI = [
-  {
-    inputs: [
-      { indexed: true, name: "user", type: "address" },
-      { indexed: false, name: "amount", type: "uint256" },
-      { indexed: false, name: "shares", type: "uint256" },
-    ],
-    name: "Deposited",
-    type: "event",
-  },
-  {
-    inputs: [
-      { indexed: true, name: "user", type: "address" },
-      { indexed: false, name: "amount", type: "uint256" },
-      { indexed: false, name: "shares", type: "uint256" },
-    ],
-    name: "Withdrawn",
-    type: "event",
-  },
-] as const;
-
-/**
- * Reads transaction history directly from the blockchain using the
- * vault contract events. This replaces localStorage entirely, making
- * the history portable across browsers and devices.
- */
-export function getEntries(address?: string) {
-  if (!address || typeof window === "undefined") return [];
-  return [];
+export function getEntries(address?: string): LedgerEntry[] {
+  const all = read().sort((a, b) => b.timestamp - a.timestamp);
+  if (!address) return all;
+  return all.filter((e) => e.address.toLowerCase() === address.toLowerCase());
 }
 
 export function addEntry(entry: LedgerEntry) {
-  // Tidak perlu disimpan di localStorage lagi — semua data diambil dari blockchain
+  write([entry, ...read()]);
   window.dispatchEvent(new Event(LEDGER_EVENT));
+}
+
+function startOfDay(ts: number) {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
 }
 
 /** Community rule: max DAILY_INTERACTION_LIMIT signed interactions per address per day. */
 export function getDailyUsage(address?: string) {
-  const used = 0;
+  const today = startOfDay(Date.now());
+  const used = address ? getEntries(address).filter((e) => e.timestamp >= today).length : 0;
   return {
     used,
     limit: DAILY_INTERACTION_LIMIT,
