@@ -17,25 +17,33 @@ export function useLedger() {
   const { address } = useAccount();
   const [entries, setEntries] = useState<any[]>([]);
 
-  const vault = AGENTS[0]?.vault;
-
-  const { data: totalDeposited, refetch: refetchDeposit } = useReadContract({
-    address: vault,
-    abi: AUTO_VAULT_ABI,
-    functionName: "getUserDeposited",
-    chainId: botChain.id,
-    args: address ? [address] : undefined,
-    query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
+  // Baca deposit dari SEMUA kontrak (3 vault)
+  const deposits = AGENTS.map((agent) => {
+    const { data } = useReadContract({
+      address: agent.vault,
+      abi: AUTO_VAULT_ABI,
+      functionName: "getUserDeposited",
+      chainId: botChain.id,
+      args: address ? [address] : undefined,
+      query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
+    });
+    return data ? Number(formatEther(data as bigint)) : 0;
   });
 
-  const { data: totalShares, refetch: refetchShares } = useReadContract({
-    address: vault,
-    abi: AUTO_VAULT_ABI,
-    functionName: "getTotalDeposited",
-    chainId: botChain.id,
-    query: { enabled: true, retry: 1, refetchInterval: 30_000 },
+  // Baca profit dari SEMUA kontrak (3 vault)
+  const profits = AGENTS.map((agent) => {
+    const { data } = useReadContract({
+      address: agent.vault,
+      abi: AUTO_VAULT_ABI,
+      functionName: "getUserProfit",
+      chainId: botChain.id,
+      args: address ? [address] : undefined,
+      query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
+    });
+    return data ? Number(formatEther(data as bigint)) : 0;
   });
 
+  // Ambil riwayat dari blockchain
   useEffect(() => {
     if (address) {
       const timer = setInterval(async () => {
@@ -55,34 +63,32 @@ export function useLedger() {
   }, []);
 
   const refresh = () => {
-    void refetchDeposit();
-    void refetchShares();
+    window.dispatchEvent(new Event("force-refetch"));
   };
 
   return {
     entries,
     usage: {
-      used: 0,
+      used: entries.length,
       limit: 20,
-      remaining: 20,
-      blocked: false,
+      remaining: 20 - entries.length,
+      blocked: entries.length >= 20,
     },
     positionFor: (agentId: string): LedgerPosition => {
-      if (agentId === "yields-aggregator") {
-        const net = totalDeposited ? Number(formatEther(totalDeposited)) : 0;
-        return {
-          net,
-          active: net > 0,
-          shares: net,
-        };
-      }
-      return { net: 0, active: false, shares: 0 };
+      const index = AGENTS.findIndex((a) => a.id === agentId);
+      const net = (deposits[index] ?? 0) + (profits[index] ?? 0);
+      return {
+        net,
+        active: net > 0,
+        shares: deposits[index] ?? 0,
+      };
     },
     refresh,
     status: "reading-onchain",
   };
 }
 
+/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
 export function useMonthlyFlow(entries: any[] = []) {
   const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
   const uniqueMonths = Array.from(
