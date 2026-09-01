@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { formatEther } from "viem";
 import { useReadContract, useAccount } from "wagmi";
 import { AGENTS } from "@/lib/agents";
 import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
 import { botChain } from "@/lib/chain-config";
 import { LEDGER_EVENT } from "@/lib/activity-ledger";
+import { getEntries } from "@/lib/activity-ledger";
 
 export type LedgerPosition = {
   net: number;
@@ -16,9 +17,9 @@ export function useLedger() {
   const { address } = useAccount();
   const [entries, setEntries] = useState<any[]>([]);
 
-  // MEMBACA DATA DARI 1 KONTRAK SAJA (gunakan vault pertama sebagai referensi)
   const vault = AGENTS[0]?.vault;
 
+  // Baca deposit user dari kontrak
   const { data: totalDeposited } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
@@ -28,6 +29,7 @@ export function useLedger() {
     query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
   });
 
+  
   const { data: userProfit } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
@@ -36,6 +38,16 @@ export function useLedger() {
     args: address ? [address] : undefined,
     query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
   });
+
+  useEffect(() => {
+    if (address) {
+      const timer = setInterval(async () => {
+        const newEntries = await getEntries(address);
+        setEntries(newEntries);
+      }, 30_000);
+      return () => clearInterval(timer);
+    }
+  }, [address]);
 
   useEffect(() => {
     const onLedger = () => {
@@ -54,7 +66,7 @@ export function useLedger() {
       blocked: false,
     },
     positionFor: (agentId: string): LedgerPosition => {
-      // Karena 1 kontrak untuk semua agent, data yang sama dipakai untuk semua agent
+      const index = AGENTS.findIndex((a) => a.id === agentId);
       const net = (totalDeposited ? Number(formatEther(totalDeposited)) : 0) +
                   (userProfit ? Number(formatEther(userProfit)) : 0);
       return {
@@ -67,7 +79,6 @@ export function useLedger() {
   };
 }
 
-/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
 export function useMonthlyFlow(entries: any[] = []) {
   const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
   const uniqueMonths = Array.from(
