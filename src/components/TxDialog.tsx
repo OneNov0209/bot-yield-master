@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { addEntry, getDailyUsage } from "@/lib/activity-ledger";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { AGENT_TARGET_APY as ESTIMATED_APY, type AgentStrategy } from "@/lib/agents";
-import { AUTO_VAULT_ABI, useVaultBalance } from "@/hooks/useVaultTvl";
+import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
 
 type Mode = "deposit" | "withdraw";
 type Step = "amount" | "preview" | "signing" | "done";
@@ -43,7 +43,8 @@ export function TxDialog({
     }
   }, [amount]);
 
-  const { data: shares } = useReadContract({
+  // Baca shares user dari kontrak (untuk withdraw)
+  const { data: userShares } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
     functionName: "getUserShares",
@@ -52,6 +53,17 @@ export function TxDialog({
     query: { enabled: !!vault && !!address },
   });
 
+  // Baca total deposit user dari kontrak (untuk withdraw)
+  const { data: userDeposited } = useReadContract({
+    address: vault,
+    abi: AUTO_VAULT_ABI,
+    functionName: "getUserDeposited",
+    chainId: NETWORK.id,
+    args: address ? [address] : undefined,
+    query: { enabled: !!vault && !!address },
+  });
+
+  // Baca profit user dari kontrak
   const { data: userProfit } = useReadContract({
     address: vault,
     abi: AUTO_VAULT_ABI,
@@ -198,7 +210,17 @@ export function TxDialog({
                 disabled={!vault || !value || isPending || confirming || usage.blocked}
                 onClick={() => {
                   setStep("signing");
-                  sendTransaction({ to: vault!, value: value! });
+                  if (mode === "deposit") {
+                    // Deposit: kirim tBOT native langsung ke kontrak
+                    sendTransaction({ to: vault!, value: value! });
+                  } else {
+                    // Withdraw: panggil fungsi withdraw(shares)
+                    const sharesToWithdraw = userShares ? BigInt(userShares) : 0n;
+                    sendTransaction({
+                      to: vault!,
+                      data: `0x2e1a7d4d${sharesToWithdraw.toString(16).padStart(64, "0")}`, // withdraw(uint256)
+                    });
+                  }
                 }}
                 className="flex-1 rounded-lg bg-primary py-3 font-display text-sm font-semibold text-primary-foreground disabled:opacity-50"
               >
