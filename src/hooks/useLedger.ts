@@ -6,8 +6,15 @@ import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
 import { botChain } from "@/lib/chain-config";
 import { LEDGER_EVENT } from "@/lib/activity-ledger";
 
+export type LedgerPosition = {
+  net: number;
+  active: boolean;
+  shares: number;
+};
+
 export function useLedger() {
   const { address } = useAccount();
+  const [entries, setEntries] = useState<any[]>([]);
 
   // Membaca deposit user dari kontrak
   const { data: totalDeposited, refetch: refetchDeposited } = useReadContract({
@@ -38,46 +45,59 @@ export function useLedger() {
     return () => window.removeEventListener(LEDGER_EVENT, onLedger);
   }, [refetchDeposited, refetchProfit]);
 
+  // Membuat array entries dari data on-chain (deposit = net)
+  const deposited = totalDeposited ? Number(formatEther(totalDeposited)) : 0;
+  const profit = userProfit ? Number(formatEther(userProfit)) : 0;
+
+  const netPositions = useMemo(() => {
+    return AGENTS.map((agent, i) => ({
+      net: i === 0 ? deposited + profit : 0,
+      active: (deposited + profit) > 0,
+    }));
+  }, [deposited, profit]);
+
   return {
-    deposits: totalDeposited ? Number(formatEther(totalDeposited)) : 0,
-    profit: userProfit ? Number(formatEther(userProfit)) : 0,
+    entries,
+    usage: {
+      used: 0,
+      limit: 20,
+      remaining: 20,
+      blocked: false,
+    },
+    positionFor: (agentId: string): LedgerPosition => {
+      const index = AGENTS.findIndex((a) => a.id === agentId);
+      return netPositions[index] ?? { net: 0, active: false, shares: 0 };
+    },
     status: "reading-onchain",
   };
 }
 
-/**
- * Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain.
- * Karena data bersifat on-chain, kami menggunakan kontrak sebagai sumber
- * kebenaran, dan tidak bergantung pada localStorage.
- */
-export function useMonthlyFlow() {
-  const { address } = useAccount();
+/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
+export function useMonthlyFlow(entries: any[] = []) {
+  const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
+  const uniqueMonths = Array.from(
+    new Set(
+      sorted.map((e) => {
+        const d = new Date(e.timestamp);
+        return `${d.getMonth()}-${d.getFullYear()}`;
+      })
+    )
+  );
 
-  // Membaca deposit bulanan dari kontrak (fictional untuk demo, tapi bisa di-upgrade
-  // untuk membaca event on-chain secara langsung).
-  const { data: depositData, refetch: refetchDeposit } = useReadContract({
-    address: AGENTS[0]?.vault,
-    abi: AUTO_VAULT_ABI,
-    functionName: "getTotalDeposited",
-    chainId: botChain.id,
-    query: { enabled: true, retry: 1, refetchInterval: 30_000 },
-  });
+  return uniqueMonths.map((monthKey) => {
+    const monthEntries = sorted.filter((e) => {
+      const d = new Date(e.timestamp);
+      return `${d.getMonth()}-${d.getFullYear()}` === monthKey;
+    });
 
-  useEffect(() => {
-    const onLedger = () => {
-      void refetchDeposit();
+    const netFlow = monthEntries.reduce((sum, e) => {
+      const amount = Number(e.amount);
+      return e.type === "deposit" ? sum + amount : sum - amount;
+    }, 0);
+
+    return {
+      month: monthKey,
+      value: netFlow,
     };
-    window.addEventListener(LEDGER_EVENT, onLedger);
-    return () => window.removeEventListener(LEDGER_EVENT, onLedger);
-  }, [refetchDeposit]);
-
-  const monthlyFlow = useMemo(() => {
-    if (!depositData) return [];
-    const total = Number(formatEther(depositData));
-    return [
-      { month: "This Month", amount: total },
-    ];
-  }, [depositData]);
-
-  return { monthlyFlow };
+  });
 }
