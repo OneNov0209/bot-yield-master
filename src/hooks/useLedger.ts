@@ -17,7 +17,6 @@ export function useLedger() {
   const { address } = useAccount();
   const [entries, setEntries] = useState<any[]>([]);
 
-  // Baca deposit dari SEMUA kontrak (3 vault)
   const deposits = AGENTS.map((agent) => {
     const { data } = useReadContract({
       address: agent.vault,
@@ -30,7 +29,6 @@ export function useLedger() {
     return data ? Number(formatEther(data as bigint)) : 0;
   });
 
-  // Baca profit dari SEMUA kontrak (3 vault)
   const profits = AGENTS.map((agent) => {
     const { data } = useReadContract({
       address: agent.vault,
@@ -43,7 +41,6 @@ export function useLedger() {
     return data ? Number(formatEther(data as bigint)) : 0;
   });
 
-  // Ambil riwayat dari blockchain
   useEffect(() => {
     if (address) {
       const timer = setInterval(async () => {
