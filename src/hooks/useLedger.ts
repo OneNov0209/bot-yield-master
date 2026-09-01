@@ -17,7 +17,6 @@ export function useLedger() {
   const { address } = useAccount();
   const [entries, setEntries] = useState<any[]>([]);
 
-  // Hanya baca dari 1 kontrak (vault pertama)
   const vault = AGENTS[0]?.vault;
 
   const { data: totalDeposited, refetch: refetchDeposit } = useReadContract({
@@ -37,7 +36,6 @@ export function useLedger() {
     query: { enabled: true, retry: 1, refetchInterval: 30_000 },
   });
 
-  // Ambil riwayat dari blockchain
   useEffect(() => {
     if (address) {
       const timer = setInterval(async () => {
@@ -70,21 +68,21 @@ export function useLedger() {
       blocked: false,
     },
     positionFor: (agentId: string): LedgerPosition => {
-      const index = AGENTS.findIndex((a) => a.id === agentId);
-      const net = (totalDeposited ? Number(formatEther(totalDeposited)) : 0) +
-                  (totalShares ? Number(formatEther(totalShares)) : 0);
-      return {
-        net,
-        active: net > 0,
-        shares: totalDeposited ? Number(formatEther(totalDeposited)) : 0,
-      };
+      if (agentId === "yields-aggregator") {
+        const net = totalDeposited ? Number(formatEther(totalDeposited)) : 0;
+        return {
+          net,
+          active: net > 0,
+          shares: net,
+        };
+      }
+      return { net: 0, active: false, shares: 0 };
     },
     refresh,
     status: "reading-onchain",
   };
 }
 
-/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
 export function useMonthlyFlow(entries: any[] = []) {
   const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
   const uniqueMonths = Array.from(
