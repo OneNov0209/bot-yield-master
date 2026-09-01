@@ -33,8 +33,9 @@ export const NETWORKS: Record<NetworkKey, NetworkConfig> = {
     id: CHAIN_IDS.testnet,
     name: "BOT Chain Testnet (Bohr)",
     shortName: "Bohr Testnet",
+    // NOTE: https://rpc-testnet.botchain.ai currently returns empty responses,
+    // so it is not used as a fallback (it only added timeouts to every call).
     rpcUrl: "https://rpc.bohr.life",
-    fallbackRpcUrl: "https://rpc-testnet.botchain.ai",
     explorerUrl: "https://scan.bohr.life",
     symbol: "tBOT",
   },
