@@ -23,6 +23,7 @@ type NetworkConfig = {
   name: string;
   shortName: string;
   rpcUrl: string;
+  fallbackRpcUrl?: string;
   explorerUrl: string;
   symbol: string;
 };
@@ -33,6 +34,7 @@ export const NETWORKS: Record<NetworkKey, NetworkConfig> = {
     name: "BOT Chain Testnet (Bohr)",
     shortName: "Bohr Testnet",
     rpcUrl: "https://rpc.bohr.life",
+    fallbackRpcUrl: "https://rpc-testnet.botchain.ai",
     explorerUrl: "https://scan.bohr.life",
     symbol: "tBOT",
   },
@@ -54,7 +56,9 @@ export const botChain = defineChain({
   id: net.id,
   name: net.name,
   nativeCurrency: { name: net.symbol, symbol: net.symbol, decimals: 18 },
-  rpcUrls: { default: { http: [net.rpcUrl] } },
+  rpcUrls: {
+    default: { http: [net.rpcUrl, ...(net.fallbackRpcUrl ? [net.fallbackRpcUrl] : [])] },
+  },
   blockExplorers: { default: { name: "BOT Scan", url: net.explorerUrl } },
   testnet: ACTIVE_NETWORK === "testnet",
 });
