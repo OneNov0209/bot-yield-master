@@ -301,8 +301,7 @@ This project is open-source and available for collaboration. All code is owned b
 · New Landing Page
     The homepage now displays a project description, features, how it works, strategies, and direct links to the smart contracts on BOT Scan.
     
-· Official Domain
-    The project is accessible via botchain-yield.onenov.xyz
+· Official Domain The project is accessible via botchain-yield.onenov.xyz
 ---
 
 🔗 Link Penting
