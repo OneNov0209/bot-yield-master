@@ -197,12 +197,16 @@ export function TxDialog({
                 onClick={() => {
                   setStep("signing");
                   if (mode === "deposit") {
-                    sendTransaction({ to: vault!, value: value! });
+                    sendTransaction({
+                      to: vault!,
+                      value: value!,
+                      data: "0xd0e30db0", // deposit()
+                    });
                   } else {
                     const sharesToWithdraw = userShares ? BigInt(userShares) : 0n;
                     sendTransaction({
                       to: vault!,
-                      data: `0x2e1a7d4d${sharesToWithdraw.toString(16).padStart(64, "0")}`,
+                      data: `0x2e1a7d4d${sharesToWithdraw.toString(16).padStart(64, "0")}`, // withdraw(uint256)
                     });
                   }
                 }}
