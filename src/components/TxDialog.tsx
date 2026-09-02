@@ -9,7 +9,8 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { toast } from "sonner";
-import { addEntry, getDailyUsage } from "@/lib/activity-ledger";
+import { notifyLedgerUpdated } from "@/lib/activity-ledger";
+import { useLedger } from "@/hooks/useLedger";
 import { explorerTx, NETWORK } from "@/lib/chain-config";
 import { AGENT_TARGET_APY as ESTIMATED_APY, type AgentStrategy } from "@/lib/agents";
 import { AUTO_VAULT_ABI, useVaultBalance } from "@/hooks/useVaultTvl";
@@ -32,7 +33,7 @@ export function TxDialog({
   const [step, setStep] = useState<Step>("amount");
   const [amount, setAmount] = useState("");
   const { data: balance } = useBalance({ address });
-  const usage = getDailyUsage(address);
+  const { usage, refresh: refreshLedger } = useLedger();
 
   const vault = agent.vault as Address | undefined;
   const value = useMemo(() => {
@@ -66,15 +67,8 @@ export function TxDialog({
 
   useEffect(() => {
     if (receipt?.status === "success" && hash && address && amount) {
-      addEntry({
-        hash,
-        type: mode,
-        agentId: agent.id,
-        amount,
-        address,
-        chainId: NETWORK.id,
-        timestamp: Date.now(),
-      });
+      notifyLedgerUpdated();
+      refreshLedger();
       setStep("done");
 
       toast.success("Transaction Confirmed!", {
@@ -91,7 +85,7 @@ export function TxDialog({
         description: error.message.slice(0, 160) || "Transaction rejected",
       });
     }
-  }, [receipt, hash, address, amount, mode, agent.id, error]);
+  }, [receipt, hash, address, amount, mode, agent.id, error, refreshLedger]);
 
   const numeric = Number(amount);
   const overBalance =
