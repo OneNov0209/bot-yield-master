@@ -4,8 +4,7 @@ import { useReadContract, useAccount } from "wagmi";
 import { AGENTS } from "@/lib/agents";
 import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
 import { botChain } from "@/lib/chain-config";
-import { LEDGER_EVENT } from "@/lib/activity-ledger";
-import { getEntries } from "@/lib/activity-ledger";
+import { LEDGER_EVENT, getEntries } from "@/lib/activity-ledger";
 
 export type LedgerPosition = {
   net: number;
