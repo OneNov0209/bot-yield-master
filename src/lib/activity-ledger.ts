@@ -1,6 +1,5 @@
-import { createPublicClient, http, parseAbiItem } from "viem";
-import { botChain } from "./chain-config";
-import { DAILY_INTERACTION_LIMIT } from "./chain-config";
+import { createPublicClient, fallback, formatEther, http, parseAbiItem, type Address } from "viem";
+import { botChain, DAILY_INTERACTION_LIMIT } from "./chain-config";
 import { AGENTS } from "./agents";
 
 export type LedgerEntry = {
@@ -13,72 +12,111 @@ export type LedgerEntry = {
   timestamp: number;
 };
 
-const publicClient = createPublicClient({
-  chain: botChain,
-  transport: http(),
-});
-
 export const LEDGER_EVENT = "bot-ai-agent:ledger-updated";
 
-export const VAULT_EVENTS_ABI = [
-  parseAbiItem("event Deposited(address indexed user, uint256 amount, uint256 shares)"),
-  parseAbiItem("event Withdrawn(address indexed user, uint256 amount, uint256 shares)"),
-] as const;
+export const DEPOSITED_EVENT = parseAbiItem(
+  "event Deposited(address indexed user, uint256 amount, uint256 shares)"
+);
+export const WITHDRAWN_EVENT = parseAbiItem(
+  "event Withdrawn(address indexed user, uint256 amount, uint256 shares)"
+);
 
-export async function getEntries(address?: string): Promise<LedgerEntry[]> {
-  if (!address || typeof window === "undefined") {
-    return [];
-  }
+export const VAULT_EVENTS_ABI = [DEPOSITED_EVENT, WITHDRAWN_EVENT] as const;
 
-  const allEntries: LedgerEntry[] = [];
+const publicClient = createPublicClient({
+  chain: botChain,
+  transport: fallback(botChain.rpcUrls.default.http.map((url) => http(url, { retryCount: 1 }))),
+});
 
-  for (const agent of AGENTS) {
-    if (!agent.vault) continue;
+const CHUNK = 9_000n;
+const MAX_CHUNKS = 25;
 
-    const logs = await publicClient.getLogs({
-      address: agent.vault,
-      event: VAULT_EVENTS_ABI[0],
-      args: { user: address as `0x${string}` },
-      fromBlock: 0n,
-      toBlock: "latest",
-    });
+async function logsForVault(vault: Address, user: Address, latest: bigint) {
+  const collect = async (fromBlock: bigint, toBlock: bigint) => {
+    const [deposits, withdrawals] = await Promise.all([
+      publicClient.getLogs({ address: vault, event: DEPOSITED_EVENT, args: { user }, fromBlock, toBlock }),
+      publicClient.getLogs({ address: vault, event: WITHDRAWN_EVENT, args: { user }, fromBlock, toBlock }),
+    ]);
+    return [...deposits, ...withdrawals];
+  };
 
-    for (const log of logs) {
-      allEntries.push({
-        hash: log.transactionHash,
-        type: "deposit" as const,
-        agentId: agent.id,
-        amount: log.args.amount.toString(),
-        address,
-        chainId: botChain.id,
-        timestamp: Number(log.blockNumber * 1000n),
-      });
+  try {
+    return await collect(0n, latest);
+  } catch {
+    const out: Awaited<ReturnType<typeof collect>> = [];
+    let toBlock = latest;
+    for (let i = 0; i < MAX_CHUNKS && toBlock > 0n; i += 1) {
+      const fromBlock = toBlock > CHUNK ? toBlock - CHUNK : 0n;
+      try {
+        out.push(...(await collect(fromBlock, toBlock)));
+      } catch {
+        break;
+      }
+      if (fromBlock === 0n) break;
+      toBlock = fromBlock - 1n;
     }
+    return out;
   }
-
-  return allEntries;
 }
 
-export function addEntry(entry: LedgerEntry) {
-  window.dispatchEvent(new Event(LEDGER_EVENT));
+export async function fetchEntries(address?: string): Promise<LedgerEntry[]> {
+  if (!address) return [];
+  const user = address as Address;
+  const vaults = AGENTS.filter((a) => !!a.vault);
+  if (vaults.length === 0) return [];
+
+  const latest = await publicClient.getBlockNumber();
+
+  const perVault = await Promise.all(
+    vaults.map(async (agent) => {
+      const logs = await logsForVault(agent.vault as Address, user, latest);
+      return logs.map((log) => ({
+        log,
+        agentId: agent.id,
+      }));
+    })
+  );
+
+  const flat = perVault.flat();
+  const blockNumbers = Array.from(new Set(flat.map((f) => f.log.blockNumber).filter((b): b is bigint => b !== null)));
+  const blocks = await Promise.all(
+    blockNumbers.map(async (blockNumber) => {
+      try {
+        const block = await publicClient.getBlock({ blockNumber });
+        return [blockNumber.toString(), Number(block.timestamp) * 1000] as const;
+      } catch {
+        return [blockNumber.toString(), 0] as const;
+      }
+    })
+  );
+  const timestamps = new Map(blocks);
+
+  return flat
+    .map(({ log, agentId }) => {
+      const amount = (log.args as { amount?: bigint }).amount ?? 0n;
+      return {
+        hash: log.transactionHash ?? "",
+        type: log.eventName === "Deposited" ? ("deposit" as const) : ("withdraw" as const),
+        agentId,
+        amount: formatEther(amount),
+        address,
+        chainId: botChain.id,
+        timestamp: timestamps.get((log.blockNumber ?? 0n).toString()) ?? 0,
+      };
+    })
+    .filter((e) => e.hash.length > 0)
+    .sort((a, b) => b.timestamp - a.timestamp);
 }
 
 export function notifyLedgerUpdated() {
-  window.dispatchEvent(new Event(LEDGER_EVENT));
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(LEDGER_EVENT));
+  }
 }
 
-export function dailyUsageFromEntries(entries: LedgerEntry[], address?: string) {
-  if (!address) return 0;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return entries.filter(
-    (e) => e.address.toLowerCase() === address.toLowerCase() && e.timestamp >= today.getTime()
-  ).length;
-}
-
-/** Community rule: max DAILY_INTERACTION_LIMIT signed interactions per address per day. */
-export function getDailyUsage(address?: string) {
-  const used = 0;
+export function dailyUsageFromEntries(entries: LedgerEntry[] = []) {
+  const since = Date.now() - 24 * 60 * 60 * 1000;
+  const used = entries.filter((e) => e.timestamp >= since).length;
   return {
     used,
     limit: DAILY_INTERACTION_LIMIT,
