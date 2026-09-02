@@ -33,8 +33,13 @@ export function ChartFrame({
 }
 
 /** Donut (with inner radius) or full pie when donut={false}. */
-export function SharePie({ data, donut = true }: { data: Datum[]; donut?: boolean }) {
-  const list = Array.isArray(data) ? data.filter((d) => Number.isFinite(d.value) && d.value > 0) : [];
+export function SharePie({ data, donut = true }: { data: Datum[] | Record<string, number>; donut?: boolean }) {
+  const list: Datum[] = Array.isArray(data)
+    ? data.filter((d) => Number.isFinite(d.value) && d.value > 0)
+    : Object.entries(data)
+        .filter(([, v]) => Number.isFinite(v) && v > 0)
+        .map(([name, value]) => ({ name, value }));
+
   const total = list.reduce((sum, d) => sum + d.value, 0);
   if (total === 0) {
     return <p className="text-center text-sm text-muted-foreground">No data</p>;
