@@ -36,7 +36,7 @@ export function createWagmiConfig() {
     chains: [botChain] as const,
     transports: {
       [botChain.id]: http(botChain.rpcUrls.default.http[0]),
-    },
+    } as Record<number, ReturnType<typeof http>>,
     ssr: false,
   });
 }

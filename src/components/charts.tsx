@@ -103,7 +103,7 @@ export function ActivityLine({
     <div className="flex h-full items-end gap-1">
       {data.map((d, i) => {
         const val = d.value;
-        const height = ((val - min) / range) * 100;
+        const height = Math.max(8, ((val - min) / range) * 100);
         return (
           <div key={i} className="flex flex-1 flex-col items-center gap-1">
             <div
