@@ -76,6 +76,7 @@ export function dailyUsageFromEntries(entries: LedgerEntry[], address?: string) 
   ).length;
 }
 
+/** Community rule: max DAILY_INTERACTION_LIMIT signed interactions per address per day. */
 export function getDailyUsage(address?: string) {
   const used = 0;
   return {
