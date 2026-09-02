@@ -111,17 +111,10 @@ function Dashboard() {
               performance.
             </div>
           ) : (
-            <div className="flex h-full items-end gap-2">
-              {flow.map((d, i) => (
-                <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t-md bg-primary"
-                    style={{ height: `${Math.max(5, Math.abs(d.value))}px` }}
-                  />
-                  <p className="text-xs text-muted-foreground">{d.month}</p>
-                </div>
-              ))}
-            </div>
+            <ActivityLine
+              data={flow.map((d) => ({ time: d.month, value: d.value }))}
+              label={NETWORK.symbol}
+            />
           )}
         </div>
       </div>
