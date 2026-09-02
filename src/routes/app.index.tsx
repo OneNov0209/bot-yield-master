@@ -127,12 +127,12 @@ function Dashboard() {
               onChange={(e) => setTimeframe(e.target.value)}
               className="rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-primary"
             >
-              <option value="1h">1 Jam</option>
-              <option value="3h">3 Jam</option>
-              <option value="6h">6 Jam</option>
-              <option value="24h">24 Jam</option>
-              <option value="7d">7 Hari</option>
-              <option value="1m">1 Bulan</option>
+              <option value="1h">1 Hour</option>
+              <option value="3h">3 Hours</option>
+              <option value="6h">6 Hours</option>
+              <option value="24h">24 Hours</option>
+              <option value="7d">7 Days</option>
+              <option value="1m">1 Month</option>
             </select>
           </div>
         </div>
