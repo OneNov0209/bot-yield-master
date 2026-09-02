@@ -25,7 +25,7 @@ export const VAULT_EVENTS_ABI = [
   parseAbiItem("event Withdrawn(address indexed user, uint256 amount, uint256 shares)"),
 ] as const;
 
-export function getEntries(address?: string): LedgerEntry[] {
+export async function getEntries(address?: string): Promise<LedgerEntry[]> {
   if (!address || typeof window === "undefined") {
     return [];
   }
