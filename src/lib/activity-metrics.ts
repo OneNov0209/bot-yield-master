@@ -1,73 +1,60 @@
 import { DAILY_INTERACTION_LIMIT } from "./chain-config";
 import { AGENTS } from "./agents";
+import { dailyUsageFromEntries, type LedgerEntry } from "./activity-ledger";
 
-export type ActivityMetric = {
-  month: string;
-  amount: number;
+export type Datum = { name: string; value: number };
+export type Point = { time: string; value: number };
+
+const safeList = (entries: LedgerEntry[] | undefined): LedgerEntry[] =>
+  Array.isArray(entries) ? entries : [];
+
+const signed = (e: LedgerEntry) => {
+  const amount = Number(e.amount) || 0;
+  return e.type === "deposit" ? amount : -amount;
 };
 
-export function getMonthlyFlow(entries: any[] = []): ActivityMetric[] {
-  const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
-  const uniqueMonths = Array.from(
-    new Set(
-      sorted.map((e) => {
-        const d = new Date(e.timestamp);
-        return `${d.getMonth()}-${d.getFullYear()}`;
-      })
-    )
-  );
-
-  return uniqueMonths.map((monthKey) => {
-    const monthEntries = sorted.filter((e) => {
-      const d = new Date(e.timestamp);
-      return `${d.getMonth()}-${d.getFullYear()}` === monthKey;
-    });
-
-    const netFlow = monthEntries.reduce((sum, e) => {
-      const amount = Number(e.amount);
-      return e.type === "deposit" ? sum + amount : sum - amount;
-    }, 0);
-
-    return {
-      month: monthKey,
-      amount: netFlow,
-    };
-  });
-}
-
-export function getAgentAllocation(entries: any[] = []): Record<string, number> {
-  const allocation: Record<string, number> = {};
-  for (const e of entries) {
-    const agentId = e.agentId;
-    const amount = Number(e.amount);
-    if (!allocation[agentId]) {
-      allocation[agentId] = 0;
-    }
-    if (e.type === "deposit") {
-      allocation[agentId] += amount;
-    } else if (e.type === "withdraw") {
-      allocation[agentId] -= amount;
-    }
+export function allocationByAgent(entries: LedgerEntry[] = []): Datum[] {
+  const totals = new Map<string, number>();
+  for (const e of safeList(entries)) {
+    totals.set(e.agentId, (totals.get(e.agentId) ?? 0) + signed(e));
   }
-  return allocation;
+  return Array.from(totals.entries())
+    .map(([agentId, value]) => ({
+      name: AGENTS.find((a) => a.id === agentId)?.name ?? agentId,
+      value: Math.max(0, value),
+    }))
+    .filter((d) => d.value > 0);
 }
 
-export function getCumulativePosition(entries: any[] = []): ActivityMetric[] {
-  const sorted = [...entries].sort((a, b) => a.timestamp - b.timestamp);
-  let runningBalance = 0;
+export function flowSplit(entries: LedgerEntry[] = []): Datum[] {
+  const list = safeList(entries);
+  const deposits = list
+    .filter((e) => e.type === "deposit")
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  const withdrawals = list
+    .filter((e) => e.type === "withdraw")
+    .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  return [
+    { name: "Deposits", value: deposits },
+    { name: "Withdrawals", value: withdrawals },
+  ].filter((d) => d.value > 0);
+}
 
+export function cumulativeSeries(entries: LedgerEntry[] = []): Point[] {
+  const sorted = [...safeList(entries)].sort((a, b) => a.timestamp - b.timestamp);
+  let running = 0;
   return sorted.map((e) => {
-    const amount = Number(e.amount);
-    if (e.type === "deposit") {
-      runningBalance += amount;
-    } else if (e.type === "withdraw") {
-      runningBalance -= amount;
-    }
+    running += signed(e);
     return {
-      month: new Date(e.timestamp).toISOString(),
-      amount: runningBalance,
+      time: new Date(e.timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      value: running,
     };
   });
+}
+
+export function vaultShare(vaults: { name: string; balance: number }[] = []): Datum[] {
+  const list = Array.isArray(vaults) ? vaults : [];
+  return list.map((v) => ({ name: v.name, value: v.balance })).filter((d) => d.value > 0);
 }
 
 export function getAgentStatuses() {
@@ -76,45 +63,11 @@ export function getAgentStatuses() {
     name: agent.name,
     risk: agent.risk,
     vault: agent.vault,
-    status: "active",
   }));
 }
 
-export function getDailyUsage(address?: string) {
-  const used = 0;
-  return {
-    used,
-    limit: DAILY_INTERACTION_LIMIT,
-    remaining: Math.max(0, DAILY_INTERACTION_LIMIT - used),
-    blocked: used >= DAILY_INTERACTION_LIMIT,
-  };
+export function getDailyUsage(entries: LedgerEntry[] = []) {
+  return dailyUsageFromEntries(safeList(entries));
 }
 
-export function allocationByAgent(entries: any[] = []) {
-  return getAgentAllocation(entries);
-}
-
-export function cumulativeSeries(entries: any[] = []) {
-  return getCumulativePosition(entries);
-}
-
-export function flowSplit(entries: any[] = []) {
-  return {
-    deposits: entries.filter((e) => e.type === "deposit").length,
-    withdrawals: entries.filter((e) => e.type === "withdraw").length,
-  };
-}
-
-export function vaultShare(vaults: { name: string; balance: number }[] = []) {
-  const total = vaults.reduce((sum, v) => sum + v.balance, 0);
-  if (total === 0) return [];
-  return vaults.map((v) => ({
-    name: v.name,
-    value: v.balance,
-    share: (v.balance / total) * 100,
-  }));
-}
-
-export const monthlyFlow = getMonthlyFlow;
-export const agentAllocation = getAgentAllocation;
-export const cumulativePosition = getCumulativePosition;
+export { DAILY_INTERACTION_LIMIT };
