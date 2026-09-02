@@ -1,110 +1,118 @@
-import { useEffect, useState } from "react";
-import { formatEther } from "viem";
-import { useReadContract, useAccount } from "wagmi";
+import { useEffect } from "react";
+import { formatEther, type Address } from "viem";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAccount, useReadContracts } from "wagmi";
 import { AGENTS } from "@/lib/agents";
 import { AUTO_VAULT_ABI } from "@/hooks/useVaultTvl";
 import { botChain } from "@/lib/chain-config";
-import { LEDGER_EVENT, getEntries } from "@/lib/activity-ledger";
+import {
+  dailyUsageFromEntries,
+  fetchEntries,
+  LEDGER_EVENT,
+  type LedgerEntry,
+} from "@/lib/activity-ledger";
 
 export type LedgerPosition = {
   net: number;
   active: boolean;
   shares: number;
+  profit: number;
 };
+
+const configuredAgents = AGENTS.filter((a) => !!a.vault);
 
 export function useLedger() {
   const { address } = useAccount();
-  const [entries, setEntries] = useState<any[]>([]);
+  const queryClient = useQueryClient();
 
-  const deposits = AGENTS.map((agent) => {
-    const { data, refetch } = useReadContract({
-      address: agent.vault,
+  const entriesQuery = useQuery({
+    queryKey: ["ledger-entries", address ?? "none"],
+    queryFn: () => fetchEntries(address),
+    enabled: !!address,
+    retry: 1,
+    refetchInterval: 60_000,
+    staleTime: 15_000,
+  });
+
+  const contracts = configuredAgents.flatMap((agent) => [
+    {
+      address: agent.vault as Address,
       abi: AUTO_VAULT_ABI,
-      functionName: "getUserDeposited",
+      functionName: "getUserDeposited" as const,
       chainId: botChain.id,
-      args: address ? [address] : undefined,
-      query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
-    });
-    return {
-      value: data ? Number(formatEther(data as bigint)) : 0,
-      refetch,
-    };
+      args: [(address ?? "0x0000000000000000000000000000000000000000") as Address] as const,
+    },
+    {
+      address: agent.vault as Address,
+      abi: AUTO_VAULT_ABI,
+      functionName: "getNextProfit" as const,
+      chainId: botChain.id,
+      args: [(address ?? "0x0000000000000000000000000000000000000000") as Address] as const,
+    },
+  ]);
+
+  const { data: reads, refetch: refetchReads } = useReadContracts({
+    contracts,
+    query: { enabled: !!address && contracts.length > 0, retry: 1, refetchInterval: 30_000 },
   });
 
   useEffect(() => {
-    if (address) {
-      const timer = setInterval(async () => {
-        const newEntries = await getEntries(address);
-        setEntries(newEntries);
-      }, 30_000);
-      return () => clearInterval(timer);
-    }
-  }, [address]);
-
-  useEffect(() => {
     const onLedger = () => {
-      for (const d of deposits) {
-        void d.refetch();
-      }
+      void entriesQuery.refetch();
+      void refetchReads();
+      void queryClient.invalidateQueries({ queryKey: ["readContract"] });
     };
     window.addEventListener(LEDGER_EVENT, onLedger);
     return () => window.removeEventListener(LEDGER_EVENT, onLedger);
-  }, [deposits]);
+  }, [entriesQuery, refetchReads, queryClient]);
+
+  const entries: LedgerEntry[] = Array.isArray(entriesQuery.data) ? entriesQuery.data : [];
+
+  const positions = new Map<string, LedgerPosition>();
+  configuredAgents.forEach((agent, i) => {
+    const depositedResult = reads?.[i * 2];
+    const profitResult = reads?.[i * 2 + 1];
+    const deposited =
+      depositedResult?.status === "success" ? Number(formatEther(depositedResult.result as bigint)) : 0;
+    const profitTuple =
+      profitResult?.status === "success" ? (profitResult.result as readonly [bigint, bigint]) : undefined;
+    const profit = profitTuple ? Number(formatEther(profitTuple[0])) : 0;
+    positions.set(agent.id, {
+      net: deposited,
+      active: deposited > 0,
+      shares: deposited,
+      profit,
+    });
+  });
 
   const refresh = () => {
-    for (const d of deposits) {
-      void d.refetch();
-    }
+    void entriesQuery.refetch();
+    void refetchReads();
   };
 
   return {
     entries,
-    usage: {
-      used: entries.length,
-      limit: 20,
-      remaining: 20 - entries.length,
-      blocked: entries.length >= 20,
-    },
-    positionFor: (agentId: string): LedgerPosition => {
-      const index = AGENTS.findIndex((a) => a.id === agentId);
-      const net = deposits[index]?.value ?? 0;
-      return {
-        net,
-        active: net > 0,
-        shares: net,
-      };
-    },
+    isLoading: entriesQuery.isLoading,
+    error: entriesQuery.error as Error | null,
+    usage: dailyUsageFromEntries(entries),
+    positionFor: (agentId: string): LedgerPosition =>
+      positions.get(agentId) ?? { net: 0, active: false, shares: 0, profit: 0 },
     refresh,
     status: "reading-onchain",
   };
 }
 
-/** Menghitung aliran masuk/keluar bulanan berdasarkan data on-chain. */
-export function useMonthlyFlow(entries: any[] = []) {
-  const sorted = [...entries].sort((a, b) => b.timestamp - a.timestamp);
-  const uniqueMonths = Array.from(
-    new Set(
-      sorted.map((e) => {
-        const d = new Date(e.timestamp);
-        return `${d.getMonth()}-${d.getFullYear()}`;
-      })
-    )
-  );
+export function useMonthlyFlow(entries: LedgerEntry[] = []) {
+  const safe = Array.isArray(entries) ? entries : [];
+  const buckets = new Map<string, number>();
 
-  return uniqueMonths.map((monthKey) => {
-    const monthEntries = sorted.filter((e) => {
-      const d = new Date(e.timestamp);
-      return `${d.getMonth()}-${d.getFullYear()}` === monthKey;
-    });
+  for (const e of [...safe].sort((a, b) => a.timestamp - b.timestamp)) {
+    const d = new Date(e.timestamp);
+    const key = d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+    const amount = Number(e.amount) || 0;
+    const delta = e.type === "deposit" ? amount : -amount;
+    buckets.set(key, (buckets.get(key) ?? 0) + delta);
+  }
 
-    const netFlow = monthEntries.reduce((sum, e) => {
-      const amount = Number(e.amount);
-      return e.type === "deposit" ? sum + amount : sum - amount;
-    }, 0);
-
-    return {
-      month: monthKey,
-      value: netFlow,
-    };
-  });
+  return Array.from(buckets.entries()).map(([month, value]) => ({ month, value }));
 }
