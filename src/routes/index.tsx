@@ -1,24 +1,26 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import {
-  Bot, Shield, TrendingUp, Wallet, ArrowRight, CheckCircle2,
-  Zap, Lock, Coins, LineChart, Globe, BarChart3, Layers, ExternalLink, FileText
+  Bot,
+  Shield,
+  TrendingUp,
+  Wallet,
+  ArrowRight,
+  CheckCircle2,
+  Zap,
+  Lock,
+  Coins,
+  LineChart,
+  Globe,
+  BarChart3,
+  Layers,
+  ExternalLink,
 } from "lucide-react";
-import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
-import { useVaultTvl } from "@/hooks/useVaultTvl";
-import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
-import { AGENTS } from "@/lib/agents";
-import { explorerAddress } from "@/lib/chain-config";
-import { NETWORK } from "@/lib/chain-config";
 
 export const Route = createFileRoute("/")({
   component: Home,
 });
 
 function Home() {
-  const { tvl, vaults, configured, isLoading: tvlLoading } = useVaultTvl();
-  const { entries, positionFor } = useLedger();
-  const flow = useMonthlyFlow(entries);
-
   return (
     <div className="min-h-screen bg-background">
       {/* HERO */}
@@ -56,57 +58,32 @@ function Home() {
         </div>
       </div>
 
-      {/* LIVE STATS */}
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Total Value Locked" value={tvlLoading ? "Loading..." : `${tvl.toFixed(4)} tBOT`} />
-          <StatCard label="Active Agents" value={String(AGENTS.length)} />
-          <StatCard label="Network" value="BOT Chain Testnet" />
-          <StatCard label="Block Explorer" value="BOT Scan" />
-        </div>
-      </div>
-
-      {/* ABOUT SECTION */}
+      {/* FITUR UTAMA */}
       <div className="mx-auto max-w-6xl px-6 py-20">
-        <div className="grid gap-12 lg:grid-cols-2">
-          <div>
-            <h2 className="text-3xl font-bold">What is BOT Yield Master?</h2>
-            <p className="mt-4 text-muted-foreground">
-              BOT Yield Master is a decentralized application (dApp) built on the BOT Chain ecosystem [citation:2][citation:14].
-              It combines AI-driven automation with DeFi yield strategies to help users optimize their crypto asset management.
-            </p>
-            <p className="mt-4 text-muted-foreground">
-              By leveraging BOT Chain's modular architecture and native AI Agent support (AIDID protocol),
-              our platform allows users to deposit tBOT and automatically earn yield from specialized strategies.
-            </p>
-            <div className="mt-8 space-y-4">
-              <FeatureRow icon={CheckCircle2} title="Non-Custodial" description="You own your funds at all times." />
-              <FeatureRow icon={CheckCircle2} title="AI-Powered" description="Automated strategies that optimize yield in real-time." />
-              <FeatureRow icon={CheckCircle2} title="Fully Transparent" description="All transactions are on-chain and auditable." />
-            </div>
-          </div>
-          <div className="space-y-6">
-            {/* Chart Live */}
-            <ChartFrame
-              title="Live Protocol Performance"
-              subtitle="Real-time on-chain data"
-              empty="No on-chain activity yet."
-            >
-              <ActivityLine
-                data={flow.map((d) => ({ time: d.month, value: d.value }))}
-                label={NETWORK.symbol}
-              />
-            </ChartFrame>
-          </div>
+        <div className="text-center">
+          <h2 className="text-3xl font-bold">Why Choose BOT Yield Master?</h2>
+          <p className="mt-2 text-muted-foreground">
+            The future of DeFi is autonomous, transparent, and secure.
+          </p>
+        </div>
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <FeatureCard icon={Bot} title="AI Agents" description="Automated strategies that rebalance and optimize yield in real-time." />
+          <FeatureCard icon={Wallet} title="Secure Vault" description="Deposits secured by smart contracts. No intermediaries." />
+          <FeatureCard icon={TrendingUp} title="Real-Time ROI" description="Track your portfolio and AI Agent performance live." />
+          <FeatureCard icon={Shield} title="Transparent" description="All transactions are on-chain and fully auditable." />
+          <FeatureCard icon={Lock} title="Non-Custodial" description="You own your funds at all times. No lock-in periods." />
+          <FeatureCard icon={LineChart} title="Auto-Compounding" description="Profits are automatically reinvested to maximize returns." />
         </div>
       </div>
 
-      {/* HOW IT WORKS (ROADMAP VERTIKAL) */}
+      {/* CARA KERJA (ROADMAP VERTIKAL) */}
       <div id="how-it-works" className="border-y border-border/60 bg-card/50 py-20">
         <div className="mx-auto max-w-4xl px-6">
           <div className="text-center">
             <h2 className="text-3xl font-bold">How It Works</h2>
-            <p className="mt-2 text-muted-foreground">Start earning in 3 simple steps.</p>
+            <p className="mt-2 text-muted-foreground">
+              Start earning in 3 simple steps.
+            </p>
           </div>
           <div className="mt-12 space-y-8">
             <StepCard number="01" title="Connect Wallet" description="Connect your wallet and switch to BOT Chain Testnet (Chain ID 968)." />
@@ -117,31 +94,18 @@ function Home() {
         </div>
       </div>
 
-      {/* STRATEGIES */}
+      {/* STRATEGI */}
       <div className="mx-auto max-w-6xl px-6 py-20">
         <div className="text-center">
           <h2 className="text-3xl font-bold">Advanced Yield Strategies</h2>
-          <p className="mt-2 text-muted-foreground">Three AI Agents, each with different risk profiles.</p>
+          <p className="mt-2 text-muted-foreground">
+            Three AI Agents, each with different risk profiles.
+          </p>
         </div>
         <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {AGENTS.map((agent) => {
-            const pos = positionFor(agent.id);
-            return (
-              <div key={agent.id} className="rounded-xl border border-border/60 bg-card/50 p-6 transition-all hover:border-primary/50">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">{agent.name}</h3>
-                  <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
-                    {agent.risk} risk
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-muted-foreground">{agent.description}</p>
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Position</span>
-                  <span className="text-lg font-bold text-neon">{pos.net.toFixed(4)} tBOT</span>
-                </div>
-              </div>
-            );
-          })}
+          <StrategyCard icon={Layers} title="Yields Aggregator" description="Medium risk. Rebalances across the deepest BOT Chain pools for high yield." apy="14.2%" risk="Medium" />
+          <StrategyCard icon={Coins} title="Stable LP Hunter" description="Low risk. Targets stable-to-stable liquidity pairs with minimal impermanent loss." apy="6.5%" risk="Low" />
+          <StrategyCard icon={BarChart3} title="Delta Neutral Bot" description="High risk. Hedged farming with funding-rate capture for maximum returns." apy="23.8%" risk="High" />
         </div>
       </div>
 
@@ -152,29 +116,26 @@ function Home() {
           <p className="mt-2 text-muted-foreground">Verify our contracts on BOT Scan.</p>
         </div>
         <div className="mt-8 space-y-3">
-          {vaults.map((vault) => (
+          {[
+            { name: "Yields Aggregator", address: "0x72bc0d58453128BCba6F5c891503809C42260C24" },
+            { name: "Stable LP Hunter", address: "0x7726659902bD4eB59F9a3b4C76402Cd900714216" },
+            { name: "Delta Neutral Bot", address: "0x080010f857C443C58DCfEE3570251321C3211af7" },
+          ].map((contract) => (
             <div
-              key={vault.agentId}
+              key={contract.name}
               className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 bg-card/50 px-4 py-3"
             >
               <div>
-                <p className="font-display text-sm">{vault.name}</p>
-                {vault.address ? (
-                  <a
-                    href={explorerAddress(vault.address)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-                  >
-                    {vault.address.slice(0, 10)}...{vault.address.slice(-8)}
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                ) : (
-                  <p className="mt-1 text-xs text-muted-foreground">Not configured</p>
-                )}
-              </div>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="text-muted-foreground">TVL: {vault.balance.toFixed(4)} tBOT</span>
+                <p className="font-display text-sm">{contract.name}</p>
+                <a
+                  href={`https://scan.bohr.life/address/${contract.address}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  {contract.address.slice(0, 10)}...{contract.address.slice(-8)}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
               </div>
             </div>
           ))}
@@ -185,7 +146,9 @@ function Home() {
       <div className="border-t border-border/60 py-20">
         <div className="mx-auto max-w-4xl px-6 text-center">
           <h2 className="text-3xl font-bold">Ready to automate your yield?</h2>
-          <p className="mt-4 text-muted-foreground">Start earning with BOT Yield Master today.</p>
+          <p className="mt-4 text-muted-foreground">
+            Start earning with BOT Yield Master today.
+          </p>
           <Link
             to="/app"
             className="mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground transition-all hover:bg-primary/90"
@@ -198,23 +161,14 @@ function Home() {
   );
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function FeatureCard({ icon: Icon, title, description }: { icon: typeof Bot; title: string; description: string }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card/50 p-6 text-center">
-      <p className="text-2xl font-bold text-neon">{value}</p>
-      <p className="mt-2 text-sm text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-function FeatureRow({ icon: Icon, title, description }: { icon: typeof CheckCircle2; title: string; description: string }) {
-  return (
-    <div className="flex items-start gap-3">
-      <Icon className="mt-0.5 h-5 w-5 text-primary" />
-      <div>
-        <p className="font-semibold">{title}</p>
-        <p className="text-sm text-muted-foreground">{description}</p>
+    <div className="rounded-xl border border-border/60 bg-card/50 p-6 transition-all hover:border-primary/50 hover:bg-card">
+      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+        <Icon className="h-6 w-6 text-primary" />
       </div>
+      <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }
@@ -230,6 +184,25 @@ function StepCard({ number, title, description }: { number: string; title: strin
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
       </div>
       <div className="absolute left-6 top-14 h-full w-px bg-border" />
+    </div>
+  );
+}
+
+function StrategyCard({ icon: Icon, title, description, apy, risk }: { icon: typeof Layers; title: string; description: string; apy: string; risk: string }) {
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/50 p-6 transition-all hover:border-primary/50">
+      <div className="flex items-center justify-between">
+        <Icon className="h-8 w-8 text-primary" />
+        <span className="rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">
+          {risk} risk
+        </span>
+      </div>
+      <h3 className="mt-4 text-lg font-semibold">{title}</h3>
+      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+      <div className="mt-4 flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">Target APY</span>
+        <span className="text-lg font-bold text-neon">{apy}</span>
+      </div>
     </div>
   );
 }
