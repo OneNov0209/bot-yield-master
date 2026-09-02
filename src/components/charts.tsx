@@ -34,31 +34,48 @@ export function ChartFrame({
 
 /** Donut (with inner radius) or full pie when donut={false}. */
 export function SharePie({ data, donut = true }: { data: Datum[]; donut?: boolean }) {
-  const total = data.reduce((sum, d) => sum + d.value, 0);
+  const list = Array.isArray(data) ? data.filter((d) => Number.isFinite(d.value) && d.value > 0) : [];
+  const total = list.reduce((sum, d) => sum + d.value, 0);
   if (total === 0) {
     return <p className="text-center text-sm text-muted-foreground">No data</p>;
   }
 
-  const percentages = data.map((d) => (d.value / total) * 100);
+  const slices: { name: string; pct: number; from: number; to: number; color: string }[] = [];
+  let cursor = 0;
+  list.forEach((d, i) => {
+    const pct = (d.value / total) * 100;
+    slices.push({
+      name: d.name,
+      pct,
+      from: cursor,
+      to: cursor + pct,
+      color: COLORS[i % COLORS.length] ?? "#a855f7",
+    });
+    cursor += pct;
+  });
 
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3">
+    <div className="flex h-full flex-wrap items-center justify-center gap-4">
       <div
-        className="flex h-24 w-24 items-center justify-center rounded-full"
+        className="flex h-28 w-28 items-center justify-center rounded-full"
         style={{
-          background: `conic-gradient(${data.map((d, i) => `${COLORS[i % COLORS.length]} ${percentages[i - 1] ?? 0}% ${percentages[i]}%`).join(", ")})`,
+          background: `conic-gradient(${slices
+            .map((s) => `${s.color} ${s.from}% ${s.to}%`)
+            .join(", ")})`,
         }}
       >
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-xs text-muted-foreground">
-          {total.toFixed(1)}
-        </div>
+        {donut && (
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-card text-xs text-muted-foreground">
+            {total.toFixed(2)}
+          </div>
+        )}
       </div>
       <div className="space-y-1">
-        {data.map((d, i) => (
-          <div key={d.name} className="flex items-center gap-2 text-xs">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-            <span>{d.name}</span>
-            <span className="text-muted-foreground">{percentages[i].toFixed(1)}%</span>
+        {slices.map((s) => (
+          <div key={s.name} className="flex items-center gap-2 text-xs">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
+            <span>{s.name}</span>
+            <span className="text-muted-foreground">{s.pct.toFixed(1)}%</span>
           </div>
         ))}
       </div>
@@ -86,7 +103,7 @@ export function ActivityLine({
     <div className="flex h-full items-end gap-1">
       {data.map((d, i) => {
         const val = d.value;
-        const height = ((val - min) / range) * 100;
+        const height = Math.max(8, ((val - min) / range) * 100);
         return (
           <div key={i} className="flex flex-1 flex-col items-center gap-1">
             <div
