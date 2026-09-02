@@ -300,15 +300,17 @@ This project is open-source and available for collaboration. All code is owned b
     
 · New Landing Page
     The homepage now displays a project description, features, how it works, strategies, and direct links to the smart contracts on BOT Scan.
-    
-· Official Domain The project is accessible via botchain-yield.onenov.xyz
+
 ---
 
-🔗 Link Penting
+### 🔗 Link 
 
 · Website: https://botchain-yield.onenov.xyz
-· Twitter (X): https://x.com/OneNov0209
+
+· Twitter (X): https://x.com/Surya021292
+
 · GitHub: https://github.com/OneNov0209/bot-yield-master
+
 · BOT Scan: https://scan.bohr.life
 
 ---
