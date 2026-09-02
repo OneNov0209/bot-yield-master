@@ -96,7 +96,7 @@ sharesToMint = (amount * totalShares) / totalDeposited
 - If the user is the first depositor, `shares = amount`.
 - **Total Deposited** and **Total Shares** increase proportionally.
 
-**Why is this important?**
+**Why is this important?**  
 Profit is calculated based on **share proportion**, not nominal amount. This makes the system **fair** for all users, whether they deposit early or late.
 
 ---
@@ -117,7 +117,7 @@ profit = (address(this).balance * dailyRate * timeElapsed) / (10000 * 1 days)
   - `totalDeposited` increases (profit is reinvested).
   - `lastProfitUpdate` is reset.
 
-**Why is this important?**
+**Why is this important?**  
 Because **profit is calculated automatically** whenever there is interaction (deposit, withdraw, or data read). This means **no bot or keeper is needed** — the system is **self-sustaining**.
 
 ---
@@ -164,7 +164,7 @@ The contract has **2 types of fees** that go to the treasury/owner:
 | **Performance Fee** | 10%        | When user withdraws profit |
 | **Withdrawal Fee**  | 1%         | When user withdraws principal |
 
-**Example:**
+**Example:**  
 - User deposits 100 tBOT → total funds = 100 tBOT.
 - Vault generates 10 tBOT profit → total funds = 110 tBOT.
 - User withdraws all (110 tBOT):
@@ -203,6 +203,7 @@ These events allow the dApp (and anyone) to **read transaction history directly 
 ---
 
 ### 10. Contract Address (Testnet)
+
 | Parameter          | Value                                      |
 |--------------------|--------------------------------------------|
 | **Contract Name**  | `AutoYieldVault`                           |
@@ -278,3 +279,31 @@ npm run dev
 📄 License
 
 This project is open-source and available for collaboration. All code is owned by the project owner and contributors.
+
+---
+
+🔄 What’s New (Update Terbaru)
+
+· 3 Smart Contracts Terpisah
+    Yields Aggregator, Stable LP Hunter, dan Delta Neutral Bot kini memiliki vault contract terpisah dengan alamat masing-masing.
+· AutoYieldVault v2
+    Kontrak utama kini menerima dana langsung via receive() dan menghitung shares dengan benar sehingga withdraw selalu berhasil.
+· Data On-Chain Sepenuhnya
+    Semua riwayat transaksi dibaca dari event blockchain, tidak ada localStorage — data tetap sama di semua browser.
+· Fee Dev Terpisah
+    Performance Fee (10%) dan Withdrawal Fee (1%) langsung masuk ke treasury developer.
+· Landing Page Baru
+    Halaman utama kini menampilkan deskripsi proyek, fitur, cara kerja, strategi, dan link langsung ke smart contract di BOT Scan.
+· Domain Resmi
+    Proyek dapat diakses melalui botchain-yield.onenov.xyz.
+
+---
+
+🔗 Link Penting
+
+· Website: https://botchain-yield.onenov.xyz
+· Twitter (X): https://x.com/OneNov0209
+· GitHub: https://github.com/OneNov0209/bot-yield-master
+· BOT Scan: https://scan.bohr.life
+
+---
