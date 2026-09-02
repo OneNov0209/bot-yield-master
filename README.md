@@ -255,15 +255,17 @@ VITE_VAULT_DELTA_NEUTRAL=0x9770030AB6A808945D6B4E8BEa599e9cfDc5D1A9
 
 ---
 
-📜 Compliance & Anti-Cheating
+## 📜 Compliance & Anti-Cheating
 
 · No Wash Trading: No features that encourage self-trading or artificial volume.
+
 · Real On-chain Data: All performance data is fetched from real on-chain sources, not random dummy data.
+
 · Daily Interaction Limit: Max 20 interactions per address per day, in compliance with community rules.
 
 ---
 
-🛠️ Development
+## 🛠️ Development
 
 Prefer working locally? Install Node.js and npm, then:
 
@@ -282,21 +284,25 @@ This project is open-source and available for collaboration. All code is owned b
 
 ---
 
-🔄 What’s New (Update Terbaru)
+## 🔄 What’s New
 
-· 3 Smart Contracts Terpisah
-    Yields Aggregator, Stable LP Hunter, dan Delta Neutral Bot kini memiliki vault contract terpisah dengan alamat masing-masing.
+· 3 Separate Smart Contracts
+    Yields Aggregator, Stable LP Hunter, and Delta Neutral Bot now have separate vault contracts with their own respective addresses.
+    
 · AutoYieldVault v2
-    Kontrak utama kini menerima dana langsung via receive() dan menghitung shares dengan benar sehingga withdraw selalu berhasil.
-· Data On-Chain Sepenuhnya
-    Semua riwayat transaksi dibaca dari event blockchain, tidak ada localStorage — data tetap sama di semua browser.
-· Fee Dev Terpisah
-    Performance Fee (10%) dan Withdrawal Fee (1%) langsung masuk ke treasury developer.
-· Landing Page Baru
-    Halaman utama kini menampilkan deskripsi proyek, fitur, cara kerja, strategi, dan link langsung ke smart contract di BOT Scan.
-· Domain Resmi
-    Proyek dapat diakses melalui botchain-yield.onenov.xyz.
-
+    The main contract now accepts funds directly via receive() and calculates shares correctly, ensuring withdrawals are always successful.
+    
+· Fully On-Chain Data
+    All transaction history is read from blockchain events — no localStorage, meaning data remains consistent across all browsers.
+    
+· Separate Dev Fees
+    Performance Fee (10%) and Withdrawal Fee (1%) are automatically sent directly to the developer's treasury.
+    
+· New Landing Page
+    The homepage now displays a project description, features, how it works, strategies, and direct links to the smart contracts on BOT Scan.
+    
+· Official Domain
+    The project is accessible via botchain-yield.onenov.xyz
 ---
 
 🔗 Link Penting
