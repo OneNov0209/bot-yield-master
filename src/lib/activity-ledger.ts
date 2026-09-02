@@ -63,6 +63,19 @@ export function addEntry(entry: LedgerEntry) {
   window.dispatchEvent(new Event(LEDGER_EVENT));
 }
 
+export function notifyLedgerUpdated() {
+  window.dispatchEvent(new Event(LEDGER_EVENT));
+}
+
+export function dailyUsageFromEntries(entries: LedgerEntry[], address?: string) {
+  if (!address) return 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return entries.filter(
+    (e) => e.address.toLowerCase() === address.toLowerCase() && e.timestamp >= today.getTime()
+  ).length;
+}
+
 /** Community rule: max DAILY_INTERACTION_LIMIT signed interactions per address per day. */
 export function getDailyUsage(address?: string) {
   const used = 0;
