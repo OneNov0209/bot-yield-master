@@ -8,7 +8,7 @@ import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
 import { NETWORK } from "@/lib/chain-config";
 import { AGENTS } from "@/lib/agents";
 import { useVaultTvl } from "@/hooks/useVaultTvl";
-import { ChartFrame } from "@/components/charts";
+import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
 import { allocationByAgent, cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 
 export const Route = createFileRoute("/app/")({
