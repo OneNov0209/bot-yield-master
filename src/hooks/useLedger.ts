@@ -45,9 +45,14 @@ export function useLedger() {
     {
       address: agent.vault as Address,
       abi: AUTO_VAULT_ABI,
-      functionName: "getNextProfit" as const,
+      functionName: "getTotalDeposited" as const,
       chainId: botChain.id,
-      args: [(address ?? "0x0000000000000000000000000000000000000000") as Address] as const,
+    },
+    {
+      address: agent.vault as Address,
+      abi: AUTO_VAULT_ABI,
+      functionName: "getTotalYield" as const,
+      chainId: botChain.id,
     },
   ]);
 
@@ -68,15 +73,17 @@ export function useLedger() {
 
   const entries: LedgerEntry[] = Array.isArray(entriesQuery.data) ? entriesQuery.data : [];
 
+  const num = (r: unknown) => {
+    const res = r as { status?: string; result?: unknown } | undefined;
+    return res?.status === "success" ? Number(formatEther(res.result as bigint)) : 0;
+  };
+
   const positions = new Map<string, LedgerPosition>();
   configuredAgents.forEach((agent, i) => {
-    const depositedResult = reads?.[i * 2];
-    const profitResult = reads?.[i * 2 + 1];
-    const deposited =
-      depositedResult?.status === "success" ? Number(formatEther(depositedResult.result as bigint)) : 0;
-    const profitTuple =
-      profitResult?.status === "success" ? (profitResult.result as readonly [bigint, bigint]) : undefined;
-    const profit = profitTuple ? Number(formatEther(profitTuple[0])) : 0;
+    const deposited = num(reads?.[i * 3]);
+    const totalDeposited = num(reads?.[i * 3 + 1]);
+    const totalYield = num(reads?.[i * 3 + 2]);
+    const profit = totalDeposited > 0 ? (deposited / totalDeposited) * totalYield : 0;
     positions.set(agent.id, {
       net: deposited,
       active: deposited > 0,
@@ -84,6 +91,7 @@ export function useLedger() {
       profit,
     });
   });
+
 
   const refresh = () => {
     void entriesQuery.refetch();

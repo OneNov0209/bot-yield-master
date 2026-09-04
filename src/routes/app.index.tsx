@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Activity, Coins, Layers, ShieldCheck, TrendingUp } from "lucide-react";
+import { Activity, Coins, Layers, ShieldCheck } from "lucide-react";
 import { formatEther } from "viem";
 import { useAccount, useBalance, useBlockNumber } from "wagmi";
 import { NetworkGuard } from "@/components/NetworkGuard";
 import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
 import { NETWORK } from "@/lib/chain-config";
 import { AGENTS } from "@/lib/agents";
-import { useVaultTvl, useVaultYield } from "@/hooks/useVaultTvl";
+import { useVaultTvl, useVaultYields } from "@/hooks/useVaultTvl";
 import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
 import { allocationByAgent, cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 
@@ -33,11 +33,21 @@ function Dashboard() {
   const split = flowSplit(filtered);
   const series = cumulativeSeries(filtered);
 
-  // Membaca yield dari 3 kontrak
-  const y1 = useVaultYield(AGENTS[0]?.vault);
-  const y2 = useVaultYield(AGENTS[1]?.vault);
-  const y3 = useVaultYield(AGENTS[2]?.vault);
-  const totalYield = (y1.yieldAmount ?? 0) + (y2.yieldAmount ?? 0) + (y3.yieldAmount ?? 0);
+  // On-chain yield read from each vault's getTotalYield()
+  const {
+    rows: yieldRows,
+    totalProfit: totalYield,
+    totalRoi,
+    isLoading: yieldsLoading,
+    error: yieldsError,
+  } = useVaultYields();
+  const roiData = yieldRows.filter((r) => r.deposited > 0 || r.profit > 0);
+  let running = 0;
+  const profitSeries = yieldRows.map((r) => {
+    running += r.profit;
+    return { time: r.name.split(" ")[0] ?? r.name, value: running };
+  });
+
 
   const activeAgents = AGENTS.filter((a) => positionFor(a.id).active).length;
   const myDeposited = AGENTS.reduce((sum, a) => sum + positionFor(a.id).net, 0);
@@ -88,31 +98,43 @@ function Dashboard() {
         />
       </div>
 
-      {/* GRAFIK ROI BARU */}
+      {/* ROI charts from on-chain getTotalYield() */}
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartFrame
           title="ROI Performance"
-          subtitle="Return on Investment per user"
-          empty="No ROI data yet"
+          subtitle={`Realised return per vault · ${totalRoi.toFixed(2)}% overall`}
+          empty={
+            yieldsError
+              ? "RPC unavailable"
+              : yieldsLoading
+                ? "Reading on-chain yield…"
+                : roiData.length === 0
+                  ? "No ROI data yet"
+                  : undefined
+          }
         >
-          <div className="flex h-full items-center justify-center">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <p className="ml-2 text-sm text-muted-foreground">
-              ROI data akan muncul setelah ada yield
-            </p>
-          </div>
+          <ActivityLine
+            data={roiData.map((r) => ({ time: r.name.split(" ")[0] ?? r.name, value: r.roi }))}
+            label="%"
+          />
         </ChartFrame>
         <ChartFrame
           title="Profit Growth"
-          subtitle="Cumulative profit over time"
-          empty={totalYield === 0 ? "No profit data yet" : undefined}
+          subtitle={`Cumulative yield paid by the keeper · ${totalYield.toFixed(6)} ${NETWORK.symbol}`}
+          empty={
+            yieldsError
+              ? "RPC unavailable"
+              : yieldsLoading
+                ? "Reading on-chain yield…"
+                : totalYield === 0
+                  ? "No profit data yet"
+                  : undefined
+          }
         >
-          <ActivityLine
-            data={totalYield > 0 ? [{ time: "Now", value: totalYield }] : [{ time: "No data", value: 0 }]}
-            label={NETWORK.symbol}
-          />
+          <ActivityLine data={profitSeries} label={NETWORK.symbol} />
         </ChartFrame>
       </div>
+
 
       <div className="panel card-3d p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
