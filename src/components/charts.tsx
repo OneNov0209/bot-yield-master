@@ -95,31 +95,73 @@ export function ActivityLine({
   data: { time: string; value: number }[];
   label: string;
 }) {
-  if (!data || data.length === 0) {
+  const points = (data ?? []).filter((d) => Number.isFinite(d.value));
+  if (points.length === 0) {
     return <p className="text-center text-sm text-muted-foreground">No activity to plot yet.</p>;
   }
 
-  const values = data.map((d) => d.value);
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min || 1;
+  const values = points.map((d) => d.value);
+  const rawMax = Math.max(...values, 0);
+  const rawMin = Math.min(...values, 0);
+  const max = rawMax === rawMin ? rawMax + 1 : rawMax;
+  const min = rawMin;
+  const range = max - min;
+
+  const W = 100;
+  const H = 100;
+  const x = (i: number) => (points.length === 1 ? W / 2 : (i / (points.length - 1)) * W);
+  const y = (v: number) => H - ((v - min) / range) * H;
+
+  const line = points.map((d, i) => `${x(i).toFixed(2)},${y(d.value).toFixed(2)}`).join(" ");
+  const area = `0,${H} ${line} ${W},${H}`;
 
   return (
-    <div className="flex h-full items-end gap-1">
-      {data.map((d, i) => {
-        const val = d.value;
-        const height = Math.max(8, ((val - min) / range) * 100);
-        return (
-          <div key={i} className="flex flex-1 flex-col items-center gap-1">
-            <div
-              className="w-full rounded-t-md bg-primary"
-              style={{ height: `${height}%` }}
+    <div className="flex h-full flex-col">
+      <div className="relative min-h-0 flex-1">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className="h-full w-full overflow-visible"
+        >
+          <defs>
+            <linearGradient id="activity-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+          <polygon points={area} fill="url(#activity-fill)" />
+          <polyline
+            points={line}
+            fill="none"
+            stroke="#a855f7"
+            strokeWidth="2"
+            vectorEffect="non-scaling-stroke"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          {points.map((d, i) => (
+            <circle
+              key={i}
+              cx={x(i)}
+              cy={y(d.value)}
+              r="3"
+              fill="#22d3ee"
+              vectorEffect="non-scaling-stroke"
             />
-            <p className="text-[10px] text-muted-foreground">{d.time}</p>
-          </div>
-        );
-      })}
-      <p className="ml-2 self-center text-xs text-muted-foreground">{label}</p>
+          ))}
+        </svg>
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <div className="flex flex-1 justify-between text-[10px] text-muted-foreground">
+          {points.map((d, i) => (
+            <span key={i} className="truncate">
+              {d.time}
+            </span>
+          ))}
+        </div>
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
     </div>
   );
 }
+
