@@ -34,6 +34,20 @@ export const AUTO_VAULT_ABI = [
     stateMutability: "view",
     type: "function",
   },
+  {
+    inputs: [{ name: "_user", type: "address" }],
+    name: "getUserDeposited",
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ name: "_user", type: "address" }],
+    name: "getUserShares",
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
 ] as const;
 
 export function useVaultBalance(address?: `0x${string}` | undefined) {
