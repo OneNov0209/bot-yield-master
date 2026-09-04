@@ -12,11 +12,11 @@ function Home() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-neon/20" />
         <div className="relative mx-auto max-w-6xl px-6 py-24 text-center">
-          {/* Logo BOT Chain */}
+          {/* Logo BOT Chain - Rounded Circle */}
           <img
-            src="/src/assets/botchain-logo.png"
+            src="https://raw.githubusercontent.com/OneNov0209/logo/refs/heads/main/BotChain.png"
             alt="BOT Chain Logo"
-            className="mx-auto mb-6 h-16 w-16 object-contain"
+            className="mx-auto mb-6 h-20 w-20 rounded-full border border-primary/30 object-cover shadow-lg"
           />
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary">
             <Bot className="h-3.5 w-3.5" />
