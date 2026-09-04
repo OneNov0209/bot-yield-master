@@ -20,7 +20,7 @@ function Home() {
             <span className="neon-text">BOT Yield Master</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-            Deposit tBOT, let AI Agents manage your portfolio, and watch your yield grow automatically.
+            Deposit BOT, let AI Agents manage your portfolio, and watch your yield grow automatically.
             Transparent, secure, and fully on-chain.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
@@ -65,7 +65,7 @@ function Home() {
           </div>
           <div className="mt-12 grid gap-8 md:grid-cols-3">
             <StepCard step="01" title="Connect Wallet" description="Connect your wallet and switch to BOT Chain." />
-            <StepCard step="02" title="Deposit tBOT" description="Deposit tBOT into any AI Agent vault." />
+            <StepCard step="02" title="Deposit BOT" description="Deposit BOT into any AI Agent vault." />
             <StepCard step="03" title="Earn Automatically" description="AI Agent farms, compounds, and reports yield." />
           </div>
         </div>
