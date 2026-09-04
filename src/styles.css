@@ -118,22 +118,37 @@
   }
 
   body {
-    background-color: var(--color-background);
+    background-color: #000000;
     color: var(--color-foreground);
     font-family: var(--font-sans);
     background-image:
       radial-gradient(
         60rem 40rem at 12% -10%,
-        color-mix(in oklab, var(--primary) 26%, transparent),
+        color-mix(in oklab, var(--primary) 20%, transparent),
         transparent
       ),
       radial-gradient(
         50rem 34rem at 92% 4%,
-        color-mix(in oklab, var(--neon) 18%, transparent),
+        color-mix(in oklab, var(--neon) 14%, transparent),
         transparent
+      ),
+      linear-gradient(
+        color-mix(in oklab, var(--primary) 12%, transparent) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg,
+        color-mix(in oklab, var(--primary) 12%, transparent) 1px,
+        transparent 1px
       );
+    background-size:
+      auto,
+      auto,
+      48px 48px,
+      48px 48px;
     background-attachment: fixed;
   }
+
 
   h1,
   h2,
