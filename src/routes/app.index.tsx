@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Activity, Coins, Layers, ShieldCheck } from "lucide-react";
+import { Activity, Coins, Layers, ShieldCheck, TrendingUp } from "lucide-react";
 import { formatEther } from "viem";
 import { useAccount, useBalance, useBlockNumber } from "wagmi";
 import { NetworkGuard } from "@/components/NetworkGuard";
@@ -25,7 +25,6 @@ function Dashboard() {
   const { data: blockNumber } = useBlockNumber({ watch: true });
   const { entries, usage, positionFor } = useLedger();
   const [agentFilter, setAgentFilter] = useState<string>("all");
-  const [timeframe, setTimeframe] = useState<string>("24h");
   const safeEntries = Array.isArray(entries) ? entries : [];
   const filtered = agentFilter === "all" ? safeEntries : safeEntries.filter((e) => e.agentId === agentFilter);
   const flow = useMonthlyFlow(filtered);
@@ -36,22 +35,6 @@ function Dashboard() {
 
   const activeAgents = AGENTS.filter((a) => positionFor(a.id).active).length;
   const myDeposited = AGENTS.reduce((sum, a) => sum + positionFor(a.id).net, 0);
-
-  // Filter data berdasarkan timeframe
-  const filteredFlow = flow.filter((d) => {
-    const date = new Date(d.month);
-    const now = Date.now();
-    const diff = now - date.getTime();
-    switch (timeframe) {
-      case "1h": return diff <= 60 * 60 * 1000;
-      case "3h": return diff <= 3 * 60 * 60 * 1000;
-      case "6h": return diff <= 6 * 60 * 60 * 1000;
-      case "24h": return diff <= 24 * 60 * 60 * 1000;
-      case "7d": return diff <= 7 * 24 * 60 * 60 * 1000;
-      case "1m": return diff <= 30 * 24 * 60 * 60 * 1000;
-      default: return true;
-    }
-  });
 
   return (
     <div className="space-y-6">
@@ -99,51 +82,63 @@ function Dashboard() {
         />
       </div>
 
+      {/* GRAFIK ROI BARU */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame
+          title="ROI Performance"
+          subtitle="Return on Investment per user"
+          empty="No ROI data yet"
+        >
+          <div className="flex h-full items-center justify-center">
+            <TrendingUp className="h-8 w-8 text-primary" />
+            <p className="ml-2 text-sm text-muted-foreground">
+              ROI data akan muncul setelah ada transaksi
+            </p>
+          </div>
+        </ChartFrame>
+        <ChartFrame
+          title="Profit Growth"
+          subtitle="Cumulative profit over time"
+          empty="No profit data yet"
+        >
+          <ActivityLine
+            data={series.length > 0 ? series : [{ time: "No data", value: 0 }]}
+            label={NETWORK.symbol}
+          />
+        </ChartFrame>
+      </div>
+
       <div className="panel card-3d p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-lg">Performance</h2>
+            <h2 className="text-lg">Monthly Performance</h2>
             <span className="text-xs text-muted-foreground">
-              Live performance data
+              Net flow derived from confirmed on-chain transactions
             </span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <select
-              aria-label="Select AI agent"
-              value={agentFilter}
-              onChange={(e) => setAgentFilter(e.target.value)}
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-primary"
-            >
-              <option value="all">All agents</option>
-              {AGENTS.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
-                </option>
-              ))}
-            </select>
-            <select
-              aria-label="Select timeframe"
-              value={timeframe}
-              onChange={(e) => setTimeframe(e.target.value)}
-              className="rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-primary"
-            >
-              <option value="1h">1 Hour</option>
-              <option value="3h">3 Hours</option>
-              <option value="6h">6 Hours</option>
-              <option value="24h">24 Hours</option>
-              <option value="7d">7 Days</option>
-              <option value="1m">1 Month</option>
-            </select>
-          </div>
+          <select
+            aria-label="Select AI agent"
+            value={agentFilter}
+            onChange={(e) => setAgentFilter(e.target.value)}
+            className="rounded-lg border border-border bg-surface px-3 py-2 text-xs outline-none focus:border-primary"
+          >
+            <option value="all">All agents</option>
+            {AGENTS.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="mt-4 h-72">
-          {filteredFlow.length === 0 ? (
+          {flow.length === 0 ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-              No confirmed on-chain activity in this timeframe yet.
+              No confirmed on-chain activity yet — deposit into an agent to start tracking
+              performance.
             </div>
           ) : (
             <ActivityLine
-              data={filteredFlow.map((d) => ({ time: d.month, value: d.value }))}
+              data={flow.map((d) => ({ time: d.month, value: d.value }))}
               label={NETWORK.symbol}
             />
           )}
