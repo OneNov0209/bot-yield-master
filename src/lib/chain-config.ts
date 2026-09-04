@@ -3,20 +3,19 @@ import { envVar } from "./env";
 
 /**
  * Central network configuration.
- * Switch `ACTIVE_NETWORK` (or VITE_BOT_NETWORK) to "mainnet" when BOT Chain
- * mainnet (chainId 677) is live.
+ * Only Mainnet (BOT Chain, chainId 677) is active.
  */
-export type NetworkKey = "testnet" | "mainnet";
+export type NetworkKey = "mainnet";
 
 /** Supported chain IDs — the single source of truth for chain-id typing. */
-export const CHAIN_IDS = { testnet: 968, mainnet: 677 } as const;
+export const CHAIN_IDS = { mainnet: 677 } as const;
 export type SupportedChainId = (typeof CHAIN_IDS)[NetworkKey];
 
 const isNetworkKey = (value: string | undefined): value is NetworkKey =>
-  value === "testnet" || value === "mainnet";
+  value === "mainnet";
 
 const requested = envVar("VITE_BOT_NETWORK");
-export const ACTIVE_NETWORK: NetworkKey = isNetworkKey(requested) ? requested : "testnet";
+export const ACTIVE_NETWORK: NetworkKey = isNetworkKey(requested) ? requested : "mainnet";
 
 type NetworkConfig = {
   id: SupportedChainId;
@@ -28,20 +27,12 @@ type NetworkConfig = {
 };
 
 export const NETWORKS: Record<NetworkKey, NetworkConfig> = {
-  testnet: {
-    id: CHAIN_IDS.testnet,
-    name: "BOT Chain Testnet (Bohr)",
-    shortName: "Bohr Testnet",
-    rpcUrl: "https://rpc.bohr.life",
-    explorerUrl: "https://scan.bohr.life",
-    symbol: "tBOT",
-  },
   mainnet: {
     id: CHAIN_IDS.mainnet,
     name: "BOT Chain",
     shortName: "BOT Mainnet",
-    rpcUrl: "https://rpc.bohr.life",
-    explorerUrl: "https://scan.bohr.life",
+    rpcUrl: "https://rpc.botchain.ai",
+    explorerUrl: "https://scan.botchain.ai",
     symbol: "BOT",
   },
 };
@@ -56,7 +47,7 @@ export const botChain = defineChain({
   nativeCurrency: { name: net.symbol, symbol: net.symbol, decimals: 18 },
   rpcUrls: { default: { http: [net.rpcUrl] } },
   blockExplorers: { default: { name: "BOT Scan", url: net.explorerUrl } },
-  testnet: ACTIVE_NETWORK === "testnet",
+  testnet: false,
 });
 
 export const explorerTx = (hash: string) => `${net.explorerUrl}/tx/${hash}`;
