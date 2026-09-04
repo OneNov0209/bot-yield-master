@@ -17,8 +17,8 @@ export default function Web3Provider({ children }: { children: ReactNode }) {
           initialChain={botChain}
           modalSize="wide"
           theme={darkTheme({
-            accentColor: "#a855f7",
-            accentColorForeground: "#0b0714",
+            accentColor: "#22c55e",
+            accentColorForeground: "#04120a",
             borderRadius: "large",
             overlayBlur: "small",
             fontStack: "system",

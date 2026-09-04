@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 
 type Datum = { name: string; value: number };
 
-const COLORS = ["#a855f7", "#22d3ee", "#34d399", "#f59e0b", "#ef4444"];
+const COLORS = ["#22c55e", "#4ade80", "#a3e635", "#f59e0b", "#ef4444"];
 
 export function ChartFrame({
   title,
@@ -54,7 +54,7 @@ export function SharePie({ data, donut = true }: { data: Datum[] | Record<string
       pct,
       from: cursor,
       to: cursor + pct,
-      color: COLORS[i % COLORS.length] ?? "#a855f7",
+      color: COLORS[i % COLORS.length] ?? "#22c55e",
     });
     cursor += pct;
   });
@@ -125,15 +125,15 @@ export function ActivityLine({
         >
           <defs>
             <linearGradient id="activity-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.45" />
-              <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+              <stop offset="0%" stopColor="#22c55e" stopOpacity="0.45" />
+              <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
             </linearGradient>
           </defs>
           <polygon points={area} fill="url(#activity-fill)" />
           <polyline
             points={line}
             fill="none"
-            stroke="#a855f7"
+            stroke="#22c55e"
             strokeWidth="2"
             vectorEffect="non-scaling-stroke"
             strokeLinejoin="round"
@@ -145,7 +145,7 @@ export function ActivityLine({
               cx={x(i)}
               cy={y(d.value)}
               r="3"
-              fill="#22d3ee"
+              fill="#4ade80"
               vectorEffect="non-scaling-stroke"
             />
           ))}
