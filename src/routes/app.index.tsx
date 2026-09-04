@@ -88,31 +88,43 @@ function Dashboard() {
         />
       </div>
 
-      {/* GRAFIK ROI BARU */}
+      {/* ROI charts from on-chain getTotalYield() */}
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartFrame
           title="ROI Performance"
-          subtitle="Return on Investment per user"
-          empty="No ROI data yet"
+          subtitle={`Realised return per vault · ${totalRoi.toFixed(2)}% overall`}
+          empty={
+            yieldsError
+              ? "RPC unavailable"
+              : yieldsLoading
+                ? "Reading on-chain yield…"
+                : roiData.length === 0
+                  ? "No ROI data yet"
+                  : undefined
+          }
         >
-          <div className="flex h-full items-center justify-center">
-            <TrendingUp className="h-8 w-8 text-primary" />
-            <p className="ml-2 text-sm text-muted-foreground">
-              ROI data akan muncul setelah ada yield
-            </p>
-          </div>
+          <ActivityLine
+            data={roiData.map((r) => ({ time: r.name.split(" ")[0] ?? r.name, value: r.roi }))}
+            label="%"
+          />
         </ChartFrame>
         <ChartFrame
           title="Profit Growth"
-          subtitle="Cumulative profit over time"
-          empty={totalYield === 0 ? "No profit data yet" : undefined}
+          subtitle={`Cumulative yield paid by the keeper · ${totalYield.toFixed(6)} ${NETWORK.symbol}`}
+          empty={
+            yieldsError
+              ? "RPC unavailable"
+              : yieldsLoading
+                ? "Reading on-chain yield…"
+                : totalYield === 0
+                  ? "No profit data yet"
+                  : undefined
+          }
         >
-          <ActivityLine
-            data={totalYield > 0 ? [{ time: "Now", value: totalYield }] : [{ time: "No data", value: 0 }]}
-            label={NETWORK.symbol}
-          />
+          <ActivityLine data={profitSeries} label={NETWORK.symbol} />
         </ChartFrame>
       </div>
+
 
       <div className="panel card-3d p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
