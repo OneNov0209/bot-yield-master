@@ -12,6 +12,12 @@ function Home() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-neon/20" />
         <div className="relative mx-auto max-w-6xl px-6 py-24 text-center">
+          {/* Logo BOT Chain */}
+          <img
+            src="/src/assets/botchain-logo.png"
+            alt="BOT Chain Logo"
+            className="mx-auto mb-6 h-16 w-16 object-contain"
+          />
           <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary">
             <Bot className="h-3.5 w-3.5" />
             AI-Powered Yield Automation on BOT Chain
