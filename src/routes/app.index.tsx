@@ -33,11 +33,21 @@ function Dashboard() {
   const split = flowSplit(filtered);
   const series = cumulativeSeries(filtered);
 
-  // Membaca yield dari 3 kontrak
-  const y1 = useVaultYield(AGENTS[0]?.vault);
-  const y2 = useVaultYield(AGENTS[1]?.vault);
-  const y3 = useVaultYield(AGENTS[2]?.vault);
-  const totalYield = (y1.yieldAmount ?? 0) + (y2.yieldAmount ?? 0) + (y3.yieldAmount ?? 0);
+  // On-chain yield read from each vault's getTotalYield()
+  const {
+    rows: yieldRows,
+    totalProfit: totalYield,
+    totalRoi,
+    isLoading: yieldsLoading,
+    error: yieldsError,
+  } = useVaultYields();
+  const roiData = yieldRows.filter((r) => r.deposited > 0 || r.profit > 0);
+  let running = 0;
+  const profitSeries = yieldRows.map((r) => {
+    running += r.profit;
+    return { time: r.name.split(" ")[0] ?? r.name, value: running };
+  });
+
 
   const activeAgents = AGENTS.filter((a) => positionFor(a.id).active).length;
   const myDeposited = AGENTS.reduce((sum, a) => sum + positionFor(a.id).net, 0);
