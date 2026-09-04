@@ -7,7 +7,7 @@ import { NetworkGuard } from "@/components/NetworkGuard";
 import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
 import { NETWORK } from "@/lib/chain-config";
 import { AGENTS } from "@/lib/agents";
-import { useVaultTvl } from "@/hooks/useVaultTvl";
+import { useVaultTvl, useVaultYield } from "@/hooks/useVaultTvl";
 import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
 import { allocationByAgent, cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 
@@ -32,6 +32,12 @@ function Dashboard() {
   const allocation = allocationByAgent(filtered);
   const split = flowSplit(filtered);
   const series = cumulativeSeries(filtered);
+
+  // Membaca yield dari 3 kontrak
+  const y1 = useVaultYield(AGENTS[0]?.vault);
+  const y2 = useVaultYield(AGENTS[1]?.vault);
+  const y3 = useVaultYield(AGENTS[2]?.vault);
+  const totalYield = (y1.yieldAmount ?? 0) + (y2.yieldAmount ?? 0) + (y3.yieldAmount ?? 0);
 
   const activeAgents = AGENTS.filter((a) => positionFor(a.id).active).length;
   const myDeposited = AGENTS.reduce((sum, a) => sum + positionFor(a.id).net, 0);
@@ -92,17 +98,17 @@ function Dashboard() {
           <div className="flex h-full items-center justify-center">
             <TrendingUp className="h-8 w-8 text-primary" />
             <p className="ml-2 text-sm text-muted-foreground">
-              ROI data akan muncul setelah ada transaksi
+              ROI data akan muncul setelah ada yield
             </p>
           </div>
         </ChartFrame>
         <ChartFrame
           title="Profit Growth"
           subtitle="Cumulative profit over time"
-          empty="No profit data yet"
+          empty={totalYield === 0 ? "No profit data yet" : undefined}
         >
           <ActivityLine
-            data={series.length > 0 ? series : [{ time: "No data", value: 0 }]}
+            data={totalYield > 0 ? [{ time: "Now", value: totalYield }] : [{ time: "No data", value: 0 }]}
             label={NETWORK.symbol}
           />
         </ChartFrame>
