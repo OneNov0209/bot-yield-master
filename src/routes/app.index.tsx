@@ -1,13 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { Activity, Coins, Layers, ShieldCheck, TrendingUp } from "lucide-react";
+import { Activity, Coins, Layers, ShieldCheck } from "lucide-react";
 import { formatEther } from "viem";
 import { useAccount, useBalance, useBlockNumber } from "wagmi";
 import { NetworkGuard } from "@/components/NetworkGuard";
 import { useLedger, useMonthlyFlow } from "@/hooks/useLedger";
 import { NETWORK } from "@/lib/chain-config";
 import { AGENTS } from "@/lib/agents";
-import { useVaultTvl, useVaultYield } from "@/hooks/useVaultTvl";
+import { useVaultTvl, useVaultYields } from "@/hooks/useVaultTvl";
 import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
 import { allocationByAgent, cumulativeSeries, flowSplit } from "@/lib/activity-metrics";
 
