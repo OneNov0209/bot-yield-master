@@ -92,6 +92,95 @@ function Home() {
           </a>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="border-t border-border/60 bg-card/40 py-12">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="grid gap-8 md:grid-cols-3">
+            <div>
+              <h4 className="font-display text-sm font-semibold text-foreground">Official Links</h4>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li>
+                  <a href="https://www.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    BOT Chain Website
+                  </a>
+                </li>
+                <li>
+                  <a href="https://faucet.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    Testnet Faucet
+                  </a>
+                </li>
+                <li>
+                  <a href="https://dex.botchain.ai/#/swap" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    DEX
+                  </a>
+                </li>
+                <li>
+                  <a href="https://bridge.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    Cross-Chain Bridge
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-display text-sm font-semibold text-foreground">Resources</h4>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li>
+                  <a href="https://wallet.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    Official Wallet
+                  </a>
+                </li>
+                <li>
+                  <a href="https://scan.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    Block Explorer
+                  </a>
+                </li>
+                <li>
+                  <a href="https://dev-docs.botchain.ai/docs/Developers/quick-guide/" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    Developer Documentation
+                  </a>
+                </li>
+                <li>
+                  <a href="https://github.com/BOTChain-bot" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    GitHub
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-display text-sm font-semibold text-foreground">Token Info</h4>
+              <ul className="mt-4 space-y-2 text-sm">
+                <li>
+                  <a href="https://www.coingecko.com/en/coins/bot" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    BOT on CoinGecko
+                  </a>
+                </li>
+                <li>
+                  <a href="https://coinmarketcap.com/currencies/bot-chain/" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    BOT on CoinMarketCap
+                  </a>
+                </li>
+                <li>
+                  <a href="https://scan.botchain.ai/token/0xD5452816194a3784dBa983426cCe7c122F4abd30" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    WBOT Contract
+                  </a>
+                </li>
+                <li>
+                  <a href="https://scan.botchain.ai/token/0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
+                    USDT Contract
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-10 border-t border-border/60 pt-6 text-center text-xs text-muted-foreground">
+            <p>© {new Date().getFullYear()} BOT Yield Master. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
@@ -117,92 +206,3 @@ function StepCard({ step, title, description }: { step: string; title: string; d
     </div>
   );
 }
-
-{/* Footer */}
-<footer className="border-t border-border/60 bg-card/40 py-12">
-  <div className="mx-auto max-w-6xl px-6">
-    <div className="grid gap-8 md:grid-cols-3">
-      <div>
-        <h4 className="font-display text-sm font-semibold text-foreground">Official Links</h4>
-        <ul className="mt-4 space-y-2 text-sm">
-          <li>
-            <a href="https://www.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              BOT Chain Website
-            </a>
-          </li>
-          <li>
-            <a href="https://faucet.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              Testnet Faucet
-            </a>
-          </li>
-          <li>
-            <a href="https://dex.botchain.ai/#/swap" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              DEX
-            </a>
-          </li>
-          <li>
-            <a href="https://bridge.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              Cross-Chain Bridge
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <div>
-        <h4 className="font-display text-sm font-semibold text-foreground">Resources</h4>
-        <ul className="mt-4 space-y-2 text-sm">
-          <li>
-            <a href="https://wallet.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              Official Wallet
-            </a>
-          </li>
-          <li>
-            <a href="https://scan.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              Block Explorer
-            </a>
-          </li>
-          <li>
-            <a href="https://dev-docs.botchain.ai/docs/Developers/quick-guide/" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              Developer Documentation
-            </a>
-          </li>
-          <li>
-            <a href="https://github.com/BOTChain-bot" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              GitHub
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <div>
-        <h4 className="font-display text-sm font-semibold text-foreground">Token Info</h4>
-        <ul className="mt-4 space-y-2 text-sm">
-          <li>
-            <a href="https://www.coingecko.com/en/coins/bot" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              BOT on CoinGecko
-            </a>
-          </li>
-          <li>
-            <a href="https://coinmarketcap.com/currencies/bot-chain/" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              BOT on CoinMarketCap
-            </a>
-          </li>
-          <li>
-            <a href="https://scan.botchain.ai/token/0xD5452816194a3784dBa983426cCe7c122F4abd30" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              WBOT Contract
-            </a>
-          </li>
-          <li>
-            <a href="https://scan.botchain.ai/token/0xaBabc7Ddc03e501d190C676BF3d92ef0e6e87a3C" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
-              USDT Contract
-            </a>
-          </li>
-        </ul>
-      </div>
-    </div>
-
-    <div className="mt-10 border-t border-border/60 pt-6 text-center text-xs text-muted-foreground">
-      <p>© {new Date().getFullYear()} BOT Yield Master. All rights reserved.</p>
-    </div>
-  </div>
-</footer>
