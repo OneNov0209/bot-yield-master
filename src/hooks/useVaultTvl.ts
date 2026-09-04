@@ -83,6 +83,46 @@ export function useVaultYield(address?: `0x${string}` | undefined) {
   };
 }
 
+/** Per-agent yield + deposited, used by the ROI charts on the dashboard. */
+export function useVaultYields() {
+  const y1 = useVaultYield(AGENTS[0]?.vault);
+  const y2 = useVaultYield(AGENTS[1]?.vault);
+  const y3 = useVaultYield(AGENTS[2]?.vault);
+  const d1 = useVaultBalance(AGENTS[0]?.vault);
+  const d2 = useVaultBalance(AGENTS[1]?.vault);
+  const d3 = useVaultBalance(AGENTS[2]?.vault);
+  const yields = [y1, y2, y3];
+  const deposits = [d1, d2, d3];
+
+  const rows = AGENTS.map((agent, i) => {
+    const y = yields[i];
+    const d = deposits[i];
+    const profit = y?.yieldAmount ?? 0;
+    const deposited = d?.balance ?? 0;
+    return {
+      agentId: agent.id,
+      name: agent.name,
+      profit,
+      deposited,
+      roi: deposited > 0 ? (profit / deposited) * 100 : 0,
+      isLoading: !!y?.isLoading || !!d?.isLoading,
+      error: y?.error ?? d?.error ?? null,
+    };
+  }).filter((r) => !!AGENTS.find((a) => a.id === r.agentId)?.vault);
+
+  const totalProfit = rows.reduce((s, r) => s + r.profit, 0);
+  const totalDeposited = rows.reduce((s, r) => s + r.deposited, 0);
+
+  return {
+    rows,
+    totalProfit,
+    totalDeposited,
+    totalRoi: totalDeposited > 0 ? (totalProfit / totalDeposited) * 100 : 0,
+    isLoading: rows.some((r) => r.isLoading),
+    error: rows.find((r) => r.error)?.error ?? null,
+  };
+}
+
 export function useVaultTvl() {
   const a = useVaultBalance(AGENTS[0]?.vault);
   const b = useVaultBalance(AGENTS[1]?.vault);
@@ -108,3 +148,4 @@ export function useVaultTvl() {
 
   return { tvl, vaults, configured, isLoading, error };
 }
+
