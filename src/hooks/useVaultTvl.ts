@@ -8,45 +8,14 @@ import { LEDGER_EVENT } from "@/lib/activity-ledger";
 export const AUTO_VAULT_ABI = [
   {
     inputs: [],
-    name: "deposit",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "_shares", type: "uint256" }],
-    name: "withdraw",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "_user", type: "address" }],
-    name: "getUserDeposited",
+    name: "getTotalDeposited",
     outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "_user", type: "address" }],
-    name: "getUserShares",
-    outputs: [{ type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ name: "_user", type: "address" }],
-    name: "getNextProfit",
-    outputs: [
-      { name: "profit", type: "uint256" },
-      { name: "total", type: "uint256" },
-    ],
     stateMutability: "view",
     type: "function",
   },
   {
     inputs: [],
-    name: "getTotalDeposited",
+    name: "getTotalYield",
     outputs: [{ type: "uint256" }],
     stateMutability: "view",
     type: "function",
@@ -84,6 +53,30 @@ export function useVaultBalance(address?: `0x${string}` | undefined) {
 
   return {
     balance: data ? Number(formatEther(data)) : 0,
+    isLoading: !!address && isLoading,
+    error: isError ? ((error as Error | null) ?? new Error("RPC read failed")) : null,
+    refetch,
+  };
+}
+
+/** Hook untuk membaca total yield dari kontrak */
+export function useVaultYield(address?: `0x${string}` | undefined) {
+  const { data, isLoading, isError, error, refetch } = useReadContract({
+    address,
+    abi: AUTO_VAULT_ABI,
+    functionName: "getTotalYield",
+    chainId: botChain.id,
+    query: { enabled: !!address, retry: 1, refetchInterval: 30_000 },
+  });
+
+  useEffect(() => {
+    const onLedger = () => void refetch();
+    window.addEventListener(LEDGER_EVENT, onLedger);
+    return () => window.removeEventListener(LEDGER_EVENT, onLedger);
+  }, [refetch]);
+
+  return {
+    yieldAmount: data ? Number(formatEther(data)) : 0,
     isLoading: !!address && isLoading,
     error: isError ? ((error as Error | null) ?? new Error("RPC read failed")) : null,
     refetch,
