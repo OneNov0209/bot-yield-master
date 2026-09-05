@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bot, Shield, TrendingUp, Wallet, ArrowRight } from "lucide-react";
+import { Bot, Shield, TrendingUp, Wallet, ArrowRight, Menu, X } from "lucide-react";
+import { useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { BotPriceChart } from "@/components/BotPriceChart";
 
 export const Route = createFileRoute("/")({
@@ -7,10 +9,74 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="fixed top-0 z-50 w-full border-b border-border/60 bg-background/80 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+          <Link to="/" className="flex items-center gap-2">
+            <img
+              src="https://raw.githubusercontent.com/OneNov0209/logo/refs/heads/main/BotChain.png"
+              alt="BOT Chain Logo"
+              className="h-8 w-8 rounded-full object-cover"
+            />
+            <span className="text-lg font-semibold">BOT Yield Master</span>
+          </Link>
+
+          <nav className="hidden items-center gap-6 md:flex">
+            <Link to="/" className="text-sm text-muted-foreground hover:text-primary">
+              Home
+            </Link>
+            <Link to="/faq" className="text-sm text-muted-foreground hover:text-primary">
+              FAQ
+            </Link>
+            <Link to="/docs" className="text-sm text-muted-foreground hover:text-primary">
+              Docs
+            </Link>
+            <Link
+              to="/app"
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            >
+              Launch App
+            </Link>
+          </nav>
+
+          <button
+            className="md:hidden"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+
+        {isMenuOpen && (
+          <div className="border-t border-border/60 bg-background px-6 py-4 md:hidden">
+            <nav className="space-y-4">
+              <Link to="/" className="block text-sm text-muted-foreground hover:text-primary">
+                Home
+              </Link>
+              <Link to="/faq" className="block text-sm text-muted-foreground hover:text-primary">
+                FAQ
+              </Link>
+              <Link to="/docs" className="block text-sm text-muted-foreground hover:text-primary">
+                Docs
+              </Link>
+              <Link
+                to="/app"
+                className="block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+              >
+                Launch App
+              </Link>
+            </nav>
+          </div>
+        )}
+      </header>
+
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden pt-24">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-neon/20" />
         <div className="relative mx-auto max-w-6xl px-6 py-24 text-center">
           {/* Logo BOT Chain - Rounded Circle */}
