@@ -61,6 +61,7 @@ const usd = (n: number) =>
   `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 
 function BotPriceChartInner() {
+  const [range, setRange] = useState<RangeKey>("minutes");
   const market = useQuery({
     queryKey: ["coingecko", "bot", "market"],
     queryFn: fetchMarket,
@@ -68,10 +69,11 @@ function BotPriceChartInner() {
     staleTime: 30_000,
   });
   const chart = useQuery({
-    queryKey: ["coingecko", "bot", "chart-30d"],
-    queryFn: fetchChart,
-    refetchInterval: 300_000,
-    staleTime: 120_000,
+    queryKey: ["coingecko", "bot", "chart", range],
+    queryFn: () => fetchChart(range),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
 
   const change = market.data?.price_change_percentage_24h ?? null;
