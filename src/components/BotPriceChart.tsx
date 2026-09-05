@@ -16,8 +16,27 @@ type ChartPoint = { time: string; value: number };
 
 const MARKET_URL =
   "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bot&price_change_percentage=24h";
-const CHART_URL =
-  "https://api.coingecko.com/api/v3/coins/bot/market_chart?vs_currency=usd&days=30&interval=daily";
+
+type RangeKey = "minutes" | "hours" | "days" | "months";
+
+const RANGES: Record<RangeKey, { label: string; days: number; hint: string }> = {
+  minutes: { label: "24 Jam", days: 1, hint: "per 5 menit" },
+  hours: { label: "7 Hari", days: 7, hint: "per jam" },
+  days: { label: "30 Hari", days: 30, hint: "per jam" },
+  months: { label: "1 Tahun", days: 365, hint: "per hari" },
+};
+
+const chartUrl = (days: number) =>
+  `https://api.coingecko.com/api/v3/coins/bot/market_chart?vs_currency=usd&days=${days}`;
+
+const fmtTime = (ts: number, range: RangeKey) => {
+  const d = new Date(ts);
+  if (range === "minutes")
+    return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  if (range === "hours" || range === "days")
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+};
 
 async function fetchMarket(): Promise<Market> {
   const res = await fetch(MARKET_URL);
