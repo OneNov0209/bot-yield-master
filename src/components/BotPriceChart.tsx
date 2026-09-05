@@ -124,7 +124,26 @@ function BotPriceChartInner() {
         </dl>
       )}
 
-      <div className="mt-6 h-64">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        {(Object.keys(RANGES) as RangeKey[]).map((key) => (
+          <button
+            key={key}
+            onClick={() => setRange(key)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              range === key
+                ? "bg-primary text-primary-foreground"
+                : "border border-border text-muted-foreground hover:border-primary hover:text-primary"
+            }`}
+          >
+            {RANGES[key].label}
+          </button>
+        ))}
+        <span className="ml-auto text-[11px] text-muted-foreground">
+          interval {RANGES[range].hint}
+        </span>
+      </div>
+
+      <div className="mt-4 h-64">
         {chart.error || market.error ? (
           <p className="flex h-full items-center justify-center gap-2 text-sm text-destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -135,7 +154,10 @@ function BotPriceChartInner() {
             <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading live price chart…
           </p>
         ) : (
-          <ActivityLine data={chart.data ?? []} label="BOT price (30 days, USD)" />
+          <ActivityLine
+            data={chart.data ?? []}
+            label={`BOT price · ${RANGES[range].label} (${RANGES[range].hint})`}
+          />
         )}
       </div>
 
