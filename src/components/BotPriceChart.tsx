@@ -16,8 +16,27 @@ type ChartPoint = { time: string; value: number };
 
 const MARKET_URL =
   "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bot&price_change_percentage=24h";
-const CHART_URL =
-  "https://api.coingecko.com/api/v3/coins/bot/market_chart?vs_currency=usd&days=30&interval=daily";
+
+type RangeKey = "minutes" | "hours" | "days" | "months";
+
+const RANGES: Record<RangeKey, { label: string; days: number; hint: string }> = {
+  minutes: { label: "24 Jam", days: 1, hint: "per 5 menit" },
+  hours: { label: "7 Hari", days: 7, hint: "per jam" },
+  days: { label: "30 Hari", days: 30, hint: "per jam" },
+  months: { label: "1 Tahun", days: 365, hint: "per hari" },
+};
+
+const chartUrl = (days: number) =>
+  `https://api.coingecko.com/api/v3/coins/bot/market_chart?vs_currency=usd&days=${days}`;
+
+const fmtTime = (ts: number, range: RangeKey) => {
+  const d = new Date(ts);
+  if (range === "minutes")
+    return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  if (range === "hours" || range === "days")
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+};
 
 async function fetchMarket(): Promise<Market> {
   const res = await fetch(MARKET_URL);
@@ -28,23 +47,21 @@ async function fetchMarket(): Promise<Market> {
   return first;
 }
 
-async function fetchChart(): Promise<ChartPoint[]> {
-  const res = await fetch(CHART_URL);
+async function fetchChart(range: RangeKey): Promise<ChartPoint[]> {
+  const res = await fetch(chartUrl(RANGES[range].days));
   if (!res.ok) throw new Error(`CoinGecko chart request failed (${res.status})`);
   const json = (await res.json()) as { prices?: [number, number][] };
   const prices = Array.isArray(json.prices) ? json.prices : [];
   return prices
     .filter((p) => Array.isArray(p) && Number.isFinite(p[1]))
-    .map(([ts, value]) => ({
-      time: new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      value,
-    }));
+    .map(([ts, value]) => ({ time: fmtTime(ts, range), value }));
 }
 
 const usd = (n: number) =>
   `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`;
 
 function BotPriceChartInner() {
+  const [range, setRange] = useState<RangeKey>("minutes");
   const market = useQuery({
     queryKey: ["coingecko", "bot", "market"],
     queryFn: fetchMarket,
@@ -52,10 +69,11 @@ function BotPriceChartInner() {
     staleTime: 30_000,
   });
   const chart = useQuery({
-    queryKey: ["coingecko", "bot", "chart-30d"],
-    queryFn: fetchChart,
-    refetchInterval: 300_000,
-    staleTime: 120_000,
+    queryKey: ["coingecko", "bot", "chart", range],
+    queryFn: () => fetchChart(range),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
   });
 
   const change = market.data?.price_change_percentage_24h ?? null;
@@ -106,7 +124,26 @@ function BotPriceChartInner() {
         </dl>
       )}
 
-      <div className="mt-6 h-64">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        {(Object.keys(RANGES) as RangeKey[]).map((key) => (
+          <button
+            key={key}
+            onClick={() => setRange(key)}
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              range === key
+                ? "bg-primary text-primary-foreground"
+                : "border border-border text-muted-foreground hover:border-primary hover:text-primary"
+            }`}
+          >
+            {RANGES[key].label}
+          </button>
+        ))}
+        <span className="ml-auto text-[11px] text-muted-foreground">
+          interval {RANGES[range].hint}
+        </span>
+      </div>
+
+      <div className="mt-4 h-64">
         {chart.error || market.error ? (
           <p className="flex h-full items-center justify-center gap-2 text-sm text-destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -117,7 +154,10 @@ function BotPriceChartInner() {
             <Loader2 className="h-4 w-4 animate-spin text-primary" /> Loading live price chart…
           </p>
         ) : (
-          <ActivityLine data={chart.data ?? []} label="BOT price (30 days, USD)" />
+          <ActivityLine
+            data={chart.data ?? []}
+            label={`BOT price · ${RANGES[range].label} (${RANGES[range].hint})`}
+          />
         )}
       </div>
 

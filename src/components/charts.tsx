@@ -153,11 +153,18 @@ export function ActivityLine({
       </div>
       <div className="mt-2 flex items-center justify-between gap-2">
         <div className="flex flex-1 justify-between text-[10px] text-muted-foreground">
-          {points.map((d, i) => (
-            <span key={i} className="truncate">
-              {d.time}
-            </span>
-          ))}
+          {points
+            .filter((_, i) => {
+              const max = 6;
+              if (points.length <= max) return true;
+              const step = (points.length - 1) / (max - 1);
+              return Math.abs(i / step - Math.round(i / step)) < 0.5 / step || i === points.length - 1;
+            })
+            .map((d, i) => (
+              <span key={i} className="truncate">
+                {d.time}
+              </span>
+            ))}
         </div>
         <span className="text-xs text-muted-foreground">{label}</span>
       </div>
