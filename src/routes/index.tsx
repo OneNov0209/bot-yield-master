@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Bot, Shield, TrendingUp, Wallet, ArrowRight } from "lucide-react";
+import { BotPriceChart } from "@/components/BotPriceChart";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -44,6 +45,11 @@ function Home() {
             </a>
           </div>
         </div>
+      </div>
+
+      {/* Live BOT Price Section */}
+      <div className="mx-auto max-w-6xl px-6 pb-4 pt-4">
+        <BotPriceChart />
       </div>
 
       {/* Features Section */}
