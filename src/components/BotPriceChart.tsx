@@ -47,17 +47,14 @@ async function fetchMarket(): Promise<Market> {
   return first;
 }
 
-async function fetchChart(): Promise<ChartPoint[]> {
-  const res = await fetch(CHART_URL);
+async function fetchChart(range: RangeKey): Promise<ChartPoint[]> {
+  const res = await fetch(chartUrl(RANGES[range].days));
   if (!res.ok) throw new Error(`CoinGecko chart request failed (${res.status})`);
   const json = (await res.json()) as { prices?: [number, number][] };
   const prices = Array.isArray(json.prices) ? json.prices : [];
   return prices
     .filter((p) => Array.isArray(p) && Number.isFinite(p[1]))
-    .map(([ts, value]) => ({
-      time: new Date(ts).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      value,
-    }));
+    .map(([ts, value]) => ({ time: fmtTime(ts, range), value }));
 }
 
 const usd = (n: number) =>
