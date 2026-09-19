@@ -35,6 +35,9 @@ function Home() {
             <Link to="/docs" className="text-sm text-muted-foreground hover:text-primary">
               Docs
             </Link>
+            <Link to="/social" className="text-sm text-muted-foreground hover:text-primary">
+              Social
+            </Link>
             <Link
               to="/app"
               className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
@@ -63,6 +66,9 @@ function Home() {
               </Link>
               <Link to="/docs" className="block text-sm text-muted-foreground hover:text-primary">
                 Docs
+              </Link>
+              <Link to="/social" className="block text-sm text-muted-foreground hover:text-primary">
+                Social
               </Link>
               <Link
                 to="/app"
