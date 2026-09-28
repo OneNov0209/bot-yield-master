@@ -1,15 +1,37 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useAccount, useBalance } from "wagmi";
 import { formatEther, type Address } from "viem";
 import { ShieldAlert, Wallet, Layers, Bot } from "lucide-react";
 import { NETWORK } from "@/lib/chain-config";
 
+const Web3Provider = lazy(() => import("@/components/Web3Provider"));
+
 const OWNER_ADDRESS = "0xaAD57141504A022af3f4F5764FE3670Ca7af060b".toLowerCase();
 
 export const Route = createFileRoute("/admin")({
-  component: Admin,
+  component: AdminWrapper,
 });
+
+function Booting() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-background">
+      <p className="animate-pulse font-display text-sm tracking-widest text-muted-foreground">
+        LOADING ADMIN PANEL…
+      </p>
+    </div>
+  );
+}
+
+function AdminWrapper() {
+  return (
+    <Suspense fallback={<Booting />}>
+      <Web3Provider>
+        <Admin />
+      </Web3Provider>
+    </Suspense>
+  );
+}
 
 function Admin() {
   const { address, isConnected } = useAccount();
@@ -64,7 +86,6 @@ function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background px-6 py-12">
       <div className="mx-auto max-w-4xl">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold">
             <span className="neon-text">Admin Dashboard</span>
@@ -74,7 +95,6 @@ function AdminDashboard() {
           </p>
         </div>
 
-        {/* Stat Cards */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="panel card-3d p-5">
             <div className="flex items-center justify-between">
@@ -127,7 +147,6 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* Info */}
         <div className="mt-8 panel p-6">
           <h2 className="mb-4 text-lg font-semibold">Info</h2>
           <ul className="space-y-2 text-sm text-muted-foreground">
