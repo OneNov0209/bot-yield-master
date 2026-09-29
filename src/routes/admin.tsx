@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useBalance } from "wagmi";
 import { formatEther, type Address } from "viem";
@@ -19,21 +19,6 @@ import {
   AlertTriangle,
   CheckCircle2,
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
 import { NETWORK, explorerTx } from "@/lib/chain-config";
 import {
   fetchSummary,
@@ -46,8 +31,6 @@ const Web3Provider = lazy(() => import("@/components/Web3Provider"));
 
 const OWNER_ADDRESS =
   "0xaad57141504a022af3f4f5764fe3670ca7af060b".toLowerCase();
-
-const COLORS = ["#22c55e", "#3b82f6", "#eab308", "#a855f7", "#ef4444"];
 
 export const Route = createFileRoute("/admin")({
   component: AdminWrapper,
@@ -160,47 +143,6 @@ function AdminDashboard() {
     const id = setInterval(load, 30_000);
     return () => clearInterval(id);
   }, []);
-
-  const vaultChartData = useMemo(
-    () =>
-      (summary?.vaults ?? []).map((v) => ({
-        name: v.name.replace(" Hunter", "").replace(" Bot", ""),
-        tvl: v.balance,
-        yield: v.yield,
-      })),
-    [summary],
-  );
-
-  const pieData = useMemo(
-    () =>
-      (summary?.vaults ?? []).map((v) => ({
-        name: v.name,
-        value: v.balance,
-      })),
-    [summary],
-  );
-
-  const activityChartData = useMemo(() => {
-    const days: Record<string, { day: string; deposit: number; withdraw: number }> = {};
-    const now = Date.now();
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(now - i * 86400_000);
-      const key = d.toISOString().slice(0, 10);
-      days[key] = {
-        day: d.toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
-        deposit: 0,
-        withdraw: 0,
-      };
-    }
-    (summary?.activity ?? []).forEach((a) => {
-      const key = new Date(a.timestamp * 1000).toISOString().slice(0, 10);
-      if (days[key]) {
-        if (a.type === "deposit") days[key].deposit += a.amount;
-        else days[key].withdraw += a.amount;
-      }
-    });
-    return Object.values(days);
-  }, [summary]);
 
   return (
     <div className="min-h-screen bg-background px-6 py-12">
@@ -319,113 +261,6 @@ function AdminDashboard() {
           </div>
         )}
 
-        {/* Charts */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div className="panel p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-              <Layers className="h-5 w-5 text-primary" /> TVL per Vault
-            </h2>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={vaultChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                  <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-                  <YAxis stroke="#9ca3af" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#0a0f0a",
-                      border: "1px solid #22c55e",
-                      borderRadius: 8,
-                      color: "#fff",
-                    }}
-                    formatter={(v: number) => `${v.toFixed(4)} ${NETWORK.symbol}`}
-                  />
-                  <Bar dataKey="tvl" fill="#22c55e" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="panel p-6">
-            <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-              <Activity className="h-5 w-5 text-primary" /> Distribusi TVL
-            </h2>
-            <div className="h-72">
-              {(summary?.totals.tvl ?? 0) > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      innerRadius={50}
-                      paddingAngle={3}
-                    >
-                      {pieData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#0a0f0a",
-                        border: "1px solid #22c55e",
-                        borderRadius: 8,
-                        color: "#fff",
-                      }}
-                      formatter={(v: number) => `${v.toFixed(4)} ${NETWORK.symbol}`}
-                    />
-                    <Legend wrapperStyle={{ fontSize: 12 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                  Belum ada TVL
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-6 panel p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-            <TrendingUp className="h-5 w-5 text-primary" /> Aktivitas 7 Hari
-          </h2>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={activityChartData}>
-                <defs>
-                  <linearGradient id="cD" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="cW" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                <XAxis dataKey="day" stroke="#9ca3af" fontSize={12} />
-                <YAxis stroke="#9ca3af" fontSize={12} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#0a0f0a",
-                    border: "1px solid #22c55e",
-                    borderRadius: 8,
-                    color: "#fff",
-                  }}
-                  formatter={(v: number) => `${v.toFixed(4)} ${NETWORK.symbol}`}
-                />
-                <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Area type="monotone" dataKey="deposit" name="Deposit" stroke="#22c55e" fill="url(#cD)" />
-                <Area type="monotone" dataKey="withdraw" name="Withdraw" stroke="#ef4444" fill="url(#cW)" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Vault Details */}
         <div className="mt-8">
           <h2 className="mb-4 flex items-center gap-2 text-xl font-bold">
@@ -449,9 +284,9 @@ function AdminDashboard() {
           </div>
         </div>
 
-        {/* User List */}
+        {/* ⭐ USER LIST — Yang Utama */}
         <div className="mt-8 panel p-6">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
               <Users className="h-5 w-5 text-primary" /> Wallet Users
             </h2>
@@ -464,7 +299,7 @@ function AdminDashboard() {
 
         {/* Activity Log */}
         <div className="mt-8 panel p-6">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
             <h2 className="flex items-center gap-2 text-lg font-semibold">
               <Activity className="h-5 w-5 text-primary" /> Activity Log
             </h2>
