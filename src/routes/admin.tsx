@@ -26,6 +26,11 @@ import {
   Copy,
   Check,
   Scan,
+  UserPlus,
+  BadgeCheck,
+  Twitter,
+  Send,
+  UserX,
 } from "lucide-react";
 import { NETWORK, explorerTx, explorerAddress } from "@/lib/chain-config";
 import {
@@ -33,10 +38,16 @@ import {
   fetchOwnerShares,
   withdrawFromVault,
   withdrawAll,
+  fetchPendingRequests,
+  fetchWhitelistAll,
+  approveRequest,
+  rejectRequest,
   type Summary,
   type UserSummary,
   type ActivityItem,
   type OwnerShares,
+  type AccessRequest,
+  type WhitelistEntry,
 } from "@/lib/api";
 
 const Web3Provider = lazy(() => import("@/components/Web3Provider"));
@@ -151,11 +162,7 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
       title={label}
       className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border border-border text-muted-foreground transition hover:border-primary hover:text-primary"
     >
-      {copied ? (
-        <Check className="h-3 w-3 text-success" />
-      ) : (
-        <Copy className="h-3 w-3" />
-      )}
+      {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
     </button>
   );
 }
@@ -221,6 +228,32 @@ function AddressChip({
 }
 
 /* ─────────────────────────────── */
+/* TAB BUTTON                     */
+/* ─────────────────────────────── */
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 border-b-2 px-4 py-2 text-sm transition ${
+        active
+          ? "border-primary text-primary"
+          : "border-transparent text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ─────────────────────────────── */
 function AdminDashboard() {
   const { address } = useAccount();
   const { data: ownerBalance } = useBalance({ address: address as Address });
@@ -239,6 +272,12 @@ function AdminDashboard() {
   const [withdrawResult, setWithdrawResult] = useState<any>(null);
 
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; msg: string; txHash?: string } | null>(null);
+
+  // Tabs
+  const [activeTab, setActiveTab] = useState<"dashboard" | "requests" | "whitelist">("dashboard");
+  const [pendingRequests, setPendingRequests] = useState<AccessRequest[]>([]);
+  const [whitelist, setWhitelist] = useState<WhitelistEntry[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
 
   useEffect(() => {
     const saved = sessionStorage.getItem(ADMIN_KEY_STORAGE);
@@ -275,6 +314,27 @@ function AdminDashboard() {
     const id = setInterval(load, 30_000);
     return () => clearInterval(id);
   }, []);
+
+  const loadRequests = async () => {
+    if (!adminKey) return;
+    setLoadingRequests(true);
+    try {
+      const [pending, wl] = await Promise.all([
+        fetchPendingRequests(adminKey),
+        fetchWhitelistAll(adminKey),
+      ]);
+      setPendingRequests(pending.requests);
+      setWhitelist(wl.whitelist);
+    } catch (e: any) {
+      setToast({ type: "error", msg: e.message });
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "requests" || activeTab === "whitelist") loadRequests();
+  }, [activeTab, adminKey]);
 
   const handleSaveKey = (key: string) => {
     setAdminKey(key);
@@ -328,6 +388,27 @@ function AdminDashboard() {
         setWithdrawTarget(null);
         setWithdrawResult(null);
       }, 2000);
+    }
+  };
+
+  const handleApprove = async (id: number) => {
+    try {
+      await approveRequest(id, adminKey);
+      setToast({ type: "success", msg: `Request #${id} approved` });
+      await loadRequests();
+    } catch (e: any) {
+      setToast({ type: "error", msg: e.message });
+    }
+  };
+
+  const handleReject = async (id: number) => {
+    const reason = window.prompt("Alasan penolakan (opsional):") ?? undefined;
+    try {
+      await rejectRequest(id, adminKey, reason);
+      setToast({ type: "info", msg: `Request #${id} rejected` });
+      await loadRequests();
+    } catch (e: any) {
+      setToast({ type: "error", msg: e.message });
     }
   };
 
@@ -415,210 +496,263 @@ function AdminDashboard() {
           </div>
         )}
 
-        <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span>Last updated: {lastRefresh.toLocaleTimeString("id-ID")}</span>
-          <span>·</span>
-          <span>Auto-refresh 30s</span>
-          {error && (
-            <>
+        {/* Tabs */}
+        <div className="mb-6 flex flex-wrap gap-1 border-b border-border">
+          <TabButton active={activeTab === "dashboard"} onClick={() => setActiveTab("dashboard")}>
+            Dashboard
+          </TabButton>
+          <TabButton active={activeTab === "requests"} onClick={() => setActiveTab("requests")}>
+            <UserPlus className="h-4 w-4" />
+            Requests
+            {pendingRequests.length > 0 && (
+              <span className="ml-1 rounded-full bg-destructive px-2 py-0.5 text-xs text-white">
+                {pendingRequests.length}
+              </span>
+            )}
+          </TabButton>
+          <TabButton active={activeTab === "whitelist"} onClick={() => setActiveTab("whitelist")}>
+            <BadgeCheck className="h-4 w-4" />
+            Whitelist ({whitelist.length})
+          </TabButton>
+        </div>
+
+        {/* ═══════════════════════════════════ */}
+        {/* TAB: DASHBOARD                     */}
+        {/* ═══════════════════════════════════ */}
+        {activeTab === "dashboard" && (
+          <>
+            <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+              <span>Last updated: {lastRefresh.toLocaleTimeString("id-ID")}</span>
               <span>·</span>
-              <span className="text-destructive">⚠️ {error}</span>
-            </>
-          )}
-        </div>
-
-        {/* Emergency Withdraw Banner */}
-        {totalShares > 0 && (
-          <div className="mb-6 panel border-destructive/40 bg-destructive/5 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="h-6 w-6 flex-shrink-0 text-destructive" />
-                <div>
-                  <h2 className="text-lg font-bold text-destructive">
-                    ⚠️ Emergency Withdraw All
-                  </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Owner memiliki <span className="font-mono text-foreground">{totalShares.toFixed(6)}</span> shares
-                    di 3 vault. Klik tombol untuk tarik semua ke wallet owner.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setWithdrawTarget("ALL")}
-                disabled={withdrawing || !adminKey}
-                className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground transition hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <ArrowUpFromLine className="h-4 w-4" />
-                WITHDRAW SEMUA SEKARANG
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Stat Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            icon={Layers}
-            label="Total TVL"
-            value={`${(summary?.totals.tvl ?? 0).toFixed(4)} ${NETWORK.symbol}`}
-            hint={`${summary?.vaults.length ?? 0} vaults`}
-          />
-          <StatCard
-            icon={TrendingUp}
-            label="Total Yield"
-            value={`${(summary?.totals.yield ?? 0).toFixed(6)} ${NETWORK.symbol}`}
-            hint="Accumulated"
-          />
-          <StatCard
-            icon={Wallet}
-            label="Owner Balance"
-            value={
-              ownerBalance
-                ? `${Number(formatEther(ownerBalance.value)).toFixed(4)} ${NETWORK.symbol}`
-                : "0.0000"
-            }
-            hint="Wallet for bot funding"
-          />
-          <StatCard
-            icon={Users}
-            label="Unique Users"
-            value={`${summary?.totals.uniqueUsers ?? 0}`}
-            hint={`${summary?.totals.activityCount ?? 0} activities`}
-          />
-        </div>
-
-        {/* Keeper Status */}
-        {summary?.keeper && (
-          <div
-            className={`mt-6 panel flex flex-wrap items-center justify-between gap-4 p-4 ${
-              summary.keeper.status === "healthy" ? "border-success/40" : "border-destructive/40"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              {summary.keeper.status === "healthy" ? (
-                <CheckCircle2 className="h-5 w-5 text-success" />
-              ) : (
-                <AlertTriangle className="h-5 w-5 text-destructive" />
+              <span>Auto-refresh 30s</span>
+              {error && (
+                <>
+                  <span>·</span>
+                  <span className="text-destructive">⚠️ {error}</span>
+                </>
               )}
-              <div>
-                <p className="text-sm font-semibold">
-                  Keeper Bot:{" "}
-                  <span className={summary.keeper.status === "healthy" ? "text-success" : "text-destructive"}>
-                    {summary.keeper.status === "healthy" ? "Healthy" : "Low Balance"}
-                  </span>
-                </p>
-                <div className="mt-1">
-                  <AddressChip address={summary.keeper.address} />
-                </div>
-              </div>
             </div>
-            <div className="flex flex-wrap gap-6 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Keeper Balance</p>
-                <p className="font-mono">{summary.keeper.balance.toFixed(4)} BOT</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Est. Runs Left</p>
-                <p className="font-mono">{summary.keeper.estimatedRunsLeft}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Interval</p>
-                <p className="font-mono">{summary.keeper.intervalHours}h</p>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Vault Details */}
-        <div className="mt-8">
-          <h2 className="mb-4 flex items-center gap-2 text-xl font-bold">
-            <Layers className="h-5 w-5 text-primary" /> Vault Details
-          </h2>
-          <div className="grid gap-4 lg:grid-cols-3">
-            {(summary?.vaults ?? []).map((v) => {
-              const shares = ownerShares?.vaults[v.key as keyof OwnerShares["vaults"]];
-              const hasShares = (shares?.shares ?? 0) > 0;
-              return (
-                <div key={v.key} className="panel card-3d p-6">
-                  <h3 className="text-lg font-semibold">{v.name}</h3>
-                  <div className="mt-2">
-                    <AddressChip address={v.address} />
-                  </div>
-                  <div className="mt-4 space-y-3 text-sm">
-                    <Row label="Balance" value={`${v.balance.toFixed(4)} ${NETWORK.symbol}`} />
-                    <Row label="Deposited" value={`${v.deposited.toFixed(4)} ${NETWORK.symbol}`} />
-                    <Row label="Yield" value={`${v.yield.toFixed(6)} ${NETWORK.symbol}`} />
-                    <Row label="Profit Rate" value={`${v.profitRate.toFixed(2)}%`} />
-                    <Row
-                      label="Your Shares"
-                      value={shares ? `${shares.shares.toFixed(6)}` : "—"}
-                    />
+            {/* Emergency Withdraw Banner */}
+            {totalShares > 0 && (
+              <div className="mb-6 panel border-destructive/40 bg-destructive/5 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-6 w-6 flex-shrink-0 text-destructive" />
+                    <div>
+                      <h2 className="text-lg font-bold text-destructive">
+                        ⚠️ Emergency Withdraw All
+                      </h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Owner memiliki <span className="font-mono text-foreground">{totalShares.toFixed(6)}</span> shares
+                        di 3 vault. Klik tombol untuk tarik semua ke wallet owner.
+                      </p>
+                    </div>
                   </div>
                   <button
-                    onClick={() => setWithdrawTarget(v.key)}
-                    disabled={withdrawing || !adminKey || !hasShares}
-                    className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                      hasShares && adminKey
-                        ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        : "cursor-not-allowed border border-border bg-muted text-muted-foreground"
-                    }`}
+                    onClick={() => setWithdrawTarget("ALL")}
+                    disabled={withdrawing || !adminKey}
+                    className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground transition hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {withdrawing && withdrawTarget === v.key ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" /> Processing…
-                      </>
-                    ) : (
-                      <>
-                        <ArrowUpFromLine className="h-4 w-4" />
-                        {hasShares ? "Withdraw" : "No Shares"}
-                      </>
-                    )}
+                    <ArrowUpFromLine className="h-4 w-4" />
+                    WITHDRAW SEMUA SEKARANG
                   </button>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            )}
 
-        {/* User List */}
-        <div className="mt-8 panel p-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Users className="h-5 w-5 text-primary" /> Wallet Users
-            </h2>
-            <span className="text-xs text-muted-foreground">
-              {summary?.users.length ?? 0} unique wallets
-            </span>
-          </div>
-          <UserTable users={summary?.users ?? []} loading={loading} />
-        </div>
+            {/* Stat Cards */}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard
+                icon={Layers}
+                label="Total TVL"
+                value={`${(summary?.totals.tvl ?? 0).toFixed(4)} ${NETWORK.symbol}`}
+                hint={`${summary?.vaults.length ?? 0} vaults`}
+              />
+              <StatCard
+                icon={TrendingUp}
+                label="Total Yield"
+                value={`${(summary?.totals.yield ?? 0).toFixed(6)} ${NETWORK.symbol}`}
+                hint="Accumulated"
+              />
+              <StatCard
+                icon={Wallet}
+                label="Owner Balance"
+                value={
+                  ownerBalance
+                    ? `${Number(formatEther(ownerBalance.value)).toFixed(4)} ${NETWORK.symbol}`
+                    : "0.0000"
+                }
+                hint="Wallet for bot funding"
+              />
+              <StatCard
+                icon={Users}
+                label="Unique Users"
+                value={`${summary?.totals.uniqueUsers ?? 0}`}
+                hint={`${summary?.totals.activityCount ?? 0} activities`}
+              />
+            </div>
 
-        {/* Activity Log */}
-        <div className="mt-8 panel p-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Activity className="h-5 w-5 text-primary" /> Activity Log
-            </h2>
-            <span className="text-xs text-muted-foreground">
-              {summary?.activity.length ?? 0} events
-            </span>
-          </div>
-          <ActivityTable activity={summary?.activity ?? []} />
-        </div>
+            {/* Keeper Status */}
+            {summary?.keeper && (
+              <div
+                className={`mt-6 panel flex flex-wrap items-center justify-between gap-4 p-4 ${
+                  summary.keeper.status === "healthy" ? "border-success/40" : "border-destructive/40"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  {summary.keeper.status === "healthy" ? (
+                    <CheckCircle2 className="h-5 w-5 text-success" />
+                  ) : (
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold">
+                      Keeper Bot:{" "}
+                      <span className={summary.keeper.status === "healthy" ? "text-success" : "text-destructive"}>
+                        {summary.keeper.status === "healthy" ? "Healthy" : "Low Balance"}
+                      </span>
+                    </p>
+                    <div className="mt-1">
+                      <AddressChip address={summary.keeper.address} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-6 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Keeper Balance</p>
+                    <p className="font-mono">{summary.keeper.balance.toFixed(4)} BOT</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Est. Runs Left</p>
+                    <p className="font-mono">{summary.keeper.estimatedRunsLeft}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Interval</p>
+                    <p className="font-mono">{summary.keeper.intervalHours}h</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
-        {/* Info */}
-        <div className="mt-8 panel p-6">
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
-            <Bot className="h-5 w-5 text-primary" /> Info
-          </h2>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>• Data diambil dari API backend VPS (real-time).</li>
-            <li>• Withdraw dieksekusi oleh backend pakai private key owner.</li>
-            <li>• Admin key hanya tersimpan di sesi tab ini (hilang saat close).</li>
-            <li>• Rate limit: max 10 withdraw per menit.</li>
-            <li>• Klik ikon 📋 untuk copy alamat, 🔗 untuk buka explorer.</li>
-          </ul>
-        </div>
+            {/* Vault Details */}
+            <div className="mt-8">
+              <h2 className="mb-4 flex items-center gap-2 text-xl font-bold">
+                <Layers className="h-5 w-5 text-primary" /> Vault Details
+              </h2>
+              <div className="grid gap-4 lg:grid-cols-3">
+                {(summary?.vaults ?? []).map((v) => {
+                  const shares = ownerShares?.vaults[v.key as keyof OwnerShares["vaults"]];
+                  const hasShares = (shares?.shares ?? 0) > 0;
+                  return (
+                    <div key={v.key} className="panel card-3d p-6">
+                      <h3 className="text-lg font-semibold">{v.name}</h3>
+                      <div className="mt-2">
+                        <AddressChip address={v.address} />
+                      </div>
+                      <div className="mt-4 space-y-3 text-sm">
+                        <Row label="Balance" value={`${v.balance.toFixed(4)} ${NETWORK.symbol}`} />
+                        <Row label="Deposited" value={`${v.deposited.toFixed(4)} ${NETWORK.symbol}`} />
+                        <Row label="Yield" value={`${v.yield.toFixed(6)} ${NETWORK.symbol}`} />
+                        <Row label="Profit Rate" value={`${v.profitRate.toFixed(2)}%`} />
+                        <Row
+                          label="Your Shares"
+                          value={shares ? `${shares.shares.toFixed(6)}` : "—"}
+                        />
+                      </div>
+                      <button
+                        onClick={() => setWithdrawTarget(v.key)}
+                        disabled={withdrawing || !adminKey || !hasShares}
+                        className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                          hasShares && adminKey
+                            ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            : "cursor-not-allowed border border-border bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {withdrawing && withdrawTarget === v.key ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" /> Processing…
+                          </>
+                        ) : (
+                          <>
+                            <ArrowUpFromLine className="h-4 w-4" />
+                            {hasShares ? "Withdraw" : "No Shares"}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* User List */}
+            <div className="mt-8 panel p-6">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                  <Users className="h-5 w-5 text-primary" /> Wallet Users
+                </h2>
+                <span className="text-xs text-muted-foreground">
+                  {summary?.users.length ?? 0} unique wallets
+                </span>
+              </div>
+              <UserTable users={summary?.users ?? []} loading={loading} />
+            </div>
+
+            {/* Activity Log */}
+            <div className="mt-8 panel p-6">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <h2 className="flex items-center gap-2 text-lg font-semibold">
+                  <Activity className="h-5 w-5 text-primary" /> Activity Log
+                </h2>
+                <span className="text-xs text-muted-foreground">
+                  {summary?.activity.length ?? 0} events
+                </span>
+              </div>
+              <ActivityTable activity={summary?.activity ?? []} />
+            </div>
+
+            {/* Info */}
+            <div className="mt-8 panel p-6">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+                <Bot className="h-5 w-5 text-primary" /> Info
+              </h2>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Data diambil dari API backend VPS (real-time).</li>
+                <li>• Withdraw dieksekusi oleh backend pakai private key owner.</li>
+                <li>• Admin key hanya tersimpan di sesi tab ini (hilang saat close).</li>
+                <li>• Rate limit: max 10 withdraw per menit.</li>
+                <li>• Klik ikon 📋 untuk copy alamat, 🔗 untuk buka explorer.</li>
+              </ul>
+            </div>
+          </>
+        )}
+
+        {/* ═══════════════════════════════════ */}
+        {/* TAB: REQUESTS                      */}
+        {/* ═══════════════════════════════════ */}
+        {activeTab === "requests" && (
+          <RequestsTab
+            requests={pendingRequests}
+            loading={loadingRequests}
+            adminKeySet={!!adminKey}
+            onApprove={handleApprove}
+            onReject={handleReject}
+            onRefresh={loadRequests}
+          />
+        )}
+
+        {/* ═══════════════════════════════════ */}
+        {/* TAB: WHITELIST                     */}
+        {/* ═══════════════════════════════════ */}
+        {activeTab === "whitelist" && (
+          <WhitelistTab
+            entries={whitelist}
+            loading={loadingRequests}
+            adminKeySet={!!adminKey}
+            onRefresh={loadRequests}
+          />
+        )}
       </div>
 
       {/* Admin Key Modal */}
@@ -660,6 +794,296 @@ function AdminDashboard() {
 }
 
 /* ─────────────────────────────── */
+/* REQUESTS TAB                   */
+/* ─────────────────────────────── */
+function RequestsTab({
+  requests,
+  loading,
+  adminKeySet,
+  onApprove,
+  onReject,
+  onRefresh,
+}: {
+  requests: AccessRequest[];
+  loading: boolean;
+  adminKeySet: boolean;
+  onApprove: (id: number) => void;
+  onReject: (id: number) => void;
+  onRefresh: () => void;
+}) {
+  if (!adminKeySet) {
+    return (
+      <div className="panel p-8 text-center">
+        <Lock className="mx-auto h-8 w-8 text-warning" />
+        <p className="mt-3 text-sm text-muted-foreground">
+          Set admin key terlebih dahulu untuk melihat daftar request.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading && requests.length === 0) {
+    return (
+      <div className="panel p-8 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-3 text-sm text-muted-foreground">Loading requests…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <UserPlus className="h-5 w-5 text-primary" /> Pending Requests
+        </h2>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            {requests.length} menunggu review
+          </span>
+          <button
+            onClick={onRefresh}
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {requests.length === 0 ? (
+        <div className="panel p-8 text-center">
+          <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Tidak ada request yang menunggu. Semua sudah direview. ✅
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {requests.map((r) => (
+            <RequestCard
+              key={r.id}
+              request={r}
+              onApprove={() => onApprove(r.id)}
+              onReject={() => onReject(r.id)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RequestCard({
+  request,
+  onApprove,
+  onReject,
+}: {
+  request: AccessRequest;
+  onApprove: () => void;
+  onReject: () => void;
+}) {
+  const age = Math.floor((Date.now() - request.submitted_at) / 1000 / 60);
+  const ageText =
+    age < 60
+      ? `${age} menit lalu`
+      : age < 1440
+      ? `${Math.floor(age / 60)} jam lalu`
+      : `${Math.floor(age / 1440)} hari lalu`;
+
+  return (
+    <div className="panel p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex-1 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">#{request.id}</span>
+            <span className="font-mono text-xs">{request.wallet}</span>
+            <CopyButton text={request.wallet} />
+            <ScanButton address={request.wallet} />
+            <span className="text-xs text-muted-foreground">· {ageText}</span>
+          </div>
+
+          <div className="flex flex-wrap gap-3 text-sm">
+            <a
+              href={`https://x.com/${request.twitter}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-primary hover:border-primary"
+            >
+              <Twitter className="h-3.5 w-3.5" /> @{request.twitter}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+            <a
+              href={`https://t.me/${request.telegram}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-primary hover:border-primary"
+            >
+              <Send className="h-3.5 w-3.5" /> @{request.telegram}
+              <ExternalLink className="h-3 w-3" />
+            </a>
+            {request.tweet_url && (
+              <a
+                href={request.tweet_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-primary hover:border-primary"
+              >
+                Lihat Tweet <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+
+          {request.note && (
+            <p className="rounded-lg border border-border/60 bg-background/40 p-2 text-xs italic text-muted-foreground">
+              "{request.note}"
+            </p>
+          )}
+
+          <p className="text-xs text-muted-foreground">
+            Submitted: {new Date(request.submitted_at).toLocaleString("id-ID")}
+          </p>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onApprove}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-success px-3 py-2 text-xs font-semibold text-white hover:bg-success/90"
+          >
+            <Check className="h-3.5 w-3.5" /> Approve
+          </button>
+          <button
+            onClick={onReject}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-destructive px-3 py-2 text-xs font-semibold text-white hover:bg-destructive/90"
+          >
+            <UserX className="h-3.5 w-3.5" /> Reject
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────── */
+/* WHITELIST TAB                  */
+/* ─────────────────────────────── */
+function WhitelistTab({
+  entries,
+  loading,
+  adminKeySet,
+  onRefresh,
+}: {
+  entries: WhitelistEntry[];
+  loading: boolean;
+  adminKeySet: boolean;
+  onRefresh: () => void;
+}) {
+  if (!adminKeySet) {
+    return (
+      <div className="panel p-8 text-center">
+        <Lock className="mx-auto h-8 w-8 text-warning" />
+        <p className="mt-3 text-sm text-muted-foreground">
+          Set admin key terlebih dahulu untuk melihat whitelist.
+        </p>
+      </div>
+    );
+  }
+
+  if (loading && entries.length === 0) {
+    return (
+      <div className="panel p-8 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-3 text-sm text-muted-foreground">Loading whitelist…</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <BadgeCheck className="h-5 w-5 text-primary" /> Whitelist
+        </h2>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-muted-foreground">
+            {entries.length} wallet terdaftar
+          </span>
+          <button
+            onClick={onRefresh}
+            className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {entries.length === 0 ? (
+        <div className="panel p-8 text-center">
+          <BadgeCheck className="mx-auto h-8 w-8 text-muted-foreground" />
+          <p className="mt-3 text-sm text-muted-foreground">Belum ada wallet di whitelist.</p>
+        </div>
+      ) : (
+        <div className="panel overflow-x-auto p-6">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-xs uppercase tracking-widest text-muted-foreground">
+                <th className="pb-3 pr-4">#</th>
+                <th className="pb-3 pr-4">Wallet</th>
+                <th className="pb-3 pr-4">Twitter</th>
+                <th className="pb-3 pr-4">Telegram</th>
+                <th className="pb-3 pr-4 text-right">Approved</th>
+              </tr>
+            </thead>
+            <tbody>
+              {entries.map((e, i) => (
+                <tr key={e.wallet} className="border-b border-border/40 hover:bg-primary/5">
+                  <td className="py-3 pr-4 text-xs text-muted-foreground">{i + 1}</td>
+                  <td className="py-3 pr-4">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs">{e.wallet}</span>
+                      <CopyButton text={e.wallet} />
+                      <ScanButton address={e.wallet} />
+                    </div>
+                  </td>
+                  <td className="py-3 pr-4 text-xs">
+                    {e.twitter ? (
+                      <a
+                        href={`https://x.com/${e.twitter}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        @{e.twitter}
+                      </a>
+                    ) : "—"}
+                  </td>
+                  <td className="py-3 pr-4 text-xs">
+                    {e.telegram ? (
+                      <a
+                        href={`https://t.me/${e.telegram}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        @{e.telegram}
+                      </a>
+                    ) : "—"}
+                  </td>
+                  <td className="py-3 pr-4 text-right text-xs text-muted-foreground">
+                    {new Date(e.approved_at).toLocaleDateString("id-ID")}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────── */
 function AdminKeyModal({
   initial,
   onSave,
@@ -678,7 +1102,7 @@ function AdminKeyModal({
         <h2 className="text-lg font-bold">Admin API Key</h2>
       </div>
       <p className="mb-4 text-sm text-muted-foreground">
-        Masukkan admin key untuk mengaktifkan tombol withdraw. Key hanya tersimpan di sesi tab ini.
+        Masukkan admin key untuk mengaktifkan tombol withdraw & fitur admin. Key hanya tersimpan di sesi tab ini.
       </p>
       <input
         type="password"
