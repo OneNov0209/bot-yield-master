@@ -71,8 +71,7 @@ function AppLayout() {
 }
 
 /* ──────────────────────────────────────── */
-/* ACCESS GATE — blocks /app/* unless       */
-/* wallet is whitelisted                     */
+/* ACCESS GATE                               */
 /* ──────────────────────────────────────── */
 function AccessGate({ children }: { children: React.ReactNode }) {
   const { address, isConnected } = useAccount();
@@ -267,6 +266,7 @@ function RejectedPage({ status }: { status: AccessStatus }) {
 /* ──────────────────────────────────────── */
 /* REQUEST FORM                              */
 /* ──────────────────────────────────────── */
+const BOTCHAIN_TWITTER_URL = "https://x.com/BOTChain_ai";
 const TWITTER_URL = "https://x.com/BotYieldMaster";
 const TELEGRAM_URL = "https://t.me/BOTYieldMaster";
 const OWNER_TWITTER_URL = "https://x.com/OneNov_val";
@@ -285,8 +285,24 @@ function RequestForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Checklist state
+  const [followedBotChain, setFollowedBotChain] = useState(false);
+  const [followedBotYieldMaster, setFollowedBotYieldMaster] = useState(false);
+  const [followedOwner, setFollowedOwner] = useState(false);
+  const [joinedTelegram, setJoinedTelegram] = useState(false);
+
+  const allChecked =
+    followedBotChain &&
+    followedBotYieldMaster &&
+    followedOwner &&
+    joinedTelegram;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!allChecked) {
+      setError("Please confirm all requirements before submitting.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -318,21 +334,51 @@ function RequestForm({
           </div>
         </div>
 
+        {/* Requirements */}
         <div className="mt-8 space-y-4">
-          <Step n={1} title="Follow Official Twitter">
+          <Step n={1} title="Follow Official Twitter Accounts">
             <p className="text-sm text-muted-foreground">
-              Follow the official Bot Yield Master and owner accounts.
+              Follow all three official accounts below. Each must be checked to
+              proceed.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <SocialLink href={TWITTER_URL} icon={Twitter} label="@BotYieldMaster" />
-              <SocialLink href={OWNER_TWITTER_URL} icon={Twitter} label="@OneNov_val" />
+            <div className="mt-3 space-y-2">
+              <FollowItem
+                href={BOTCHAIN_TWITTER_URL}
+                label="@BOTChain_ai"
+                sublabel="BOT Chain Official"
+                checked={followedBotChain}
+                onCheck={setFollowedBotChain}
+              />
+              <FollowItem
+                href={TWITTER_URL}
+                label="@BotYieldMaster"
+                sublabel="Bot Yield Master"
+                checked={followedBotYieldMaster}
+                onCheck={setFollowedBotYieldMaster}
+              />
+              <FollowItem
+                href={OWNER_TWITTER_URL}
+                label="@OneNov_val"
+                sublabel="Project Owner"
+                checked={followedOwner}
+                onCheck={setFollowedOwner}
+              />
             </div>
           </Step>
 
-          <Step n={2} title="Join Telegram Channel">
-            <p className="text-sm text-muted-foreground">Join the official Telegram channel.</p>
+          <Step n={2} title="Join Official Telegram Channel">
+            <p className="text-sm text-muted-foreground">
+              Join the official Telegram channel.
+            </p>
             <div className="mt-3">
-              <SocialLink href={TELEGRAM_URL} icon={Send} label="BOTYieldMaster" />
+              <FollowItem
+                href={TELEGRAM_URL}
+                label="BOTYieldMaster"
+                sublabel="Telegram Channel"
+                checked={joinedTelegram}
+                onCheck={setJoinedTelegram}
+                icon="telegram"
+              />
             </div>
           </Step>
 
@@ -343,6 +389,7 @@ function RequestForm({
           </Step>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="mt-8 space-y-4">
           <div>
             <label className="mb-1 block text-xs uppercase tracking-widest text-muted-foreground">
@@ -419,9 +466,16 @@ function RequestForm({
             </div>
           )}
 
+          {/* Requirements status */}
+          {!allChecked && (
+            <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-xs text-warning">
+              ⚠️ Please confirm all 4 requirements above before submitting.
+            </div>
+          )}
+
           <button
             type="submit"
-            disabled={submitting || !twitter || !telegram}
+            disabled={submitting || !twitter || !telegram || !allChecked}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? (
@@ -458,25 +512,47 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-function SocialLink({
+function FollowItem({
   href,
-  icon: Icon,
   label,
+  sublabel,
+  checked,
+  onCheck,
+  icon = "twitter",
 }: {
   href: string;
-  icon: typeof Twitter;
   label: string;
+  sublabel: string;
+  checked: boolean;
+  onCheck: (v: boolean) => void;
+  icon?: "twitter" | "telegram";
 }) {
+  const Icon = icon === "telegram" ? Send : Twitter;
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs transition hover:border-primary hover:text-primary"
+    <div
+      className={`flex items-center gap-3 rounded-lg border p-3 transition ${
+        checked
+          ? "border-success/40 bg-success/5"
+          : "border-border bg-background/50"
+      }`}
     >
-      <Icon className="h-3.5 w-3.5" />
-      {label}
-      <ExternalLink className="h-3 w-3" />
-    </a>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onCheck(e.target.checked)}
+        className="h-4 w-4 flex-shrink-0 cursor-pointer accent-primary"
+      />
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex flex-1 items-center gap-2 text-xs transition hover:text-primary"
+      >
+        <Icon className="h-3.5 w-3.5" />
+        <span className="font-semibold">{label}</span>
+        <span className="text-muted-foreground">— {sublabel}</span>
+        <ExternalLink className="ml-auto h-3 w-3 opacity-60" />
+      </a>
+    </div>
   );
 }
