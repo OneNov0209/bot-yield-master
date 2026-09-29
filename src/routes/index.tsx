@@ -1,5 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Bot, Shield, TrendingUp, Wallet, ArrowRight, Menu, X } from "lucide-react";
+import {
+  Bot,
+  Shield,
+  TrendingUp,
+  Wallet,
+  ArrowRight,
+  Menu,
+  X,
+  Twitter,
+  Send,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { BotPriceChart } from "@/components/BotPriceChart";
@@ -85,7 +95,6 @@ function Home() {
       <div className="relative overflow-hidden pt-24">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-neon/20" />
         <div className="relative mx-auto max-w-6xl px-6 py-24 text-center">
-          {/* Logo BOT Chain - Rounded Circle */}
           <img
             src="https://raw.githubusercontent.com/OneNov0209/logo/refs/heads/main/BotChain.png"
             alt="BOT Chain Logo"
@@ -115,6 +124,53 @@ function Home() {
             >
               How it works
             </a>
+          </div>
+        </div>
+      </div>
+
+      {/* Verified Access Notice */}
+      <div className="mx-auto max-w-6xl px-6 pt-8">
+        <div className="panel border-primary/30 bg-primary/5 p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary/20">
+                <Shield className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-display text-base font-semibold">
+                  Verified Access Only
+                </h3>
+                <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+                  To prevent bots and farming, Agent Console access is limited to
+                  verified wallets. Follow our official Twitter and join the
+                  Telegram channel to request access.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href="https://x.com/BotYieldMaster"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary hover:text-primary"
+                  >
+                    <Twitter className="h-3.5 w-3.5" /> @BotYieldMaster
+                  </a>
+                  <a
+                    href="https://t.me/BOTYieldMaster"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:border-primary hover:text-primary"
+                  >
+                    <Send className="h-3.5 w-3.5" /> Telegram
+                  </a>
+                </div>
+              </div>
+            </div>
+            <Link
+              to="/app"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+            >
+              Request Access <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </div>
       </div>
@@ -149,8 +205,8 @@ function Home() {
           </div>
           <div className="mt-12 grid gap-8 md:grid-cols-3">
             <StepCard step="01" title="Connect Wallet" description="Connect your wallet and switch to BOT Chain." />
-            <StepCard step="02" title="Deposit BOT" description="Deposit BOT into any AI Agent vault." />
-            <StepCard step="03" title="Earn Automatically" description="AI Agent farms, compounds, and reports yield." />
+            <StepCard step="02" title="Request Access" description="Follow our socials and submit an access request." />
+            <StepCard step="03" title="Deposit & Earn" description="Once approved, deposit BOT and watch yield grow." />
           </div>
         </div>
       </div>
