@@ -76,13 +76,11 @@ function StatsPage() {
     return () => clearInterval(id);
   }, []);
 
-  /* ─── Compute totals ─── */
   const totals = summary?.totals;
   const totalDeposits = summary?.activity.filter((a) => a.type === "deposit").length ?? 0;
   const totalWithdrawals = summary?.activity.filter((a) => a.type === "withdraw").length ?? 0;
   const totalTx = totalDeposits + totalWithdrawals;
 
-  /* ─── Chart data ─── */
   const vaultShareData =
     summary?.vaults.map((v) => ({ name: v.name, value: v.balance })).filter((d) => d.value > 0) ?? [];
 
@@ -225,8 +223,8 @@ function StatsPage() {
                   <tr key={v.key} className="border-b border-border/40 hover:bg-primary/5">
                     <td className="p-4">
                       <p className="font-semibold">{v.name}</p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="font-mono text-xs text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <span className="break-all font-mono text-xs text-muted-foreground">
                           {v.address}
                         </span>
                         <CopyButton text={v.address} />
@@ -269,9 +267,10 @@ function StatsPage() {
                     key={`${a.txHash}-${i}`}
                     className="flex flex-wrap items-center justify-between gap-3 p-4 transition hover:bg-primary/5"
                   >
-                    <div className="flex items-center gap-3">
+                    {/* LEFT: icon + wallet (full) + copy + scan + type */}
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <span
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full ${
+                        className={`inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
                           a.type === "deposit"
                             ? "bg-success/10 text-success"
                             : "bg-destructive/10 text-destructive"
@@ -283,21 +282,25 @@ function StatsPage() {
                           <ArrowUpFromLine className="h-4 w-4" />
                         )}
                       </span>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs">
-                            {a.user.slice(0, 6)}...{a.user.slice(-4)}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="break-all font-mono text-xs">
+                            {a.user}
                           </span>
+                          <CopyButton text={a.user} />
+                          <ScanButton address={a.user} />
                           <span className="text-xs text-muted-foreground">
                             {a.type}
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="mt-0.5 text-xs text-muted-foreground">
                           {a.vaultName}
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
+
+                    {/* RIGHT: amount + profit + tx link */}
+                    <div className="flex flex-shrink-0 items-center gap-3">
                       <div className="text-right">
                         <p className="font-mono text-sm">
                           {a.amount.toFixed(4)} {NETWORK.symbol}
