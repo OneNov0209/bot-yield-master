@@ -33,6 +33,7 @@ import {
   UserX,
   XCircle,
   BarChart3,
+  Trash2,
 } from "lucide-react";
 import { NETWORK, explorerTx, explorerAddress } from "@/lib/chain-config";
 import { ChartFrame, SharePie, ActivityLine } from "@/components/charts";
@@ -286,6 +287,10 @@ function AdminDashboard() {
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
+  // Delete confirmation
+  const [confirmDelete, setConfirmDelete] = useState<{ wallet: string; twitter?: string | null } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     const saved = sessionStorage.getItem(ADMIN_KEY_STORAGE);
     if (saved) setAdminKey(saved);
@@ -429,6 +434,28 @@ function AdminDashboard() {
       await loadRequests();
     } catch (e: any) {
       setToast({ type: "error", msg: e.message });
+    }
+  };
+
+  const handleDeleteWhitelist = async () => {
+    if (!confirmDelete || !adminKey) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL ?? "https://api.botchain-yield.onenov.xyz"}/api/whitelist/${confirmDelete.wallet}`, {
+        method: "DELETE",
+        headers: { "x-admin-key": adminKey },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        throw new Error(err.error ?? `HTTP ${res.status}`);
+      }
+      setToast({ type: "success", msg: `Wallet removed from whitelist` });
+      setConfirmDelete(null);
+      await loadRequests();
+    } catch (e: any) {
+      setToast({ type: "error", msg: e.message });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -775,6 +802,7 @@ function AdminDashboard() {
             loading={loadingRequests}
             adminKeySet={!!adminKey}
             onRefresh={loadRequests}
+            onDelete={(wallet, twitter) => setConfirmDelete({ wallet, twitter })}
           />
         )}
 
@@ -824,7 +852,90 @@ function AdminDashboard() {
           }}
         />
       )}
+
+      {/* Delete Confirm Modal */}
+      {confirmDelete && (
+        <DeleteConfirmModal
+          wallet={confirmDelete.wallet}
+          twitter={confirmDelete.twitter}
+          deleting={deleting}
+          onConfirm={handleDeleteWhitelist}
+          onClose={() => !deleting && setConfirmDelete(null)}
+        />
+      )}
     </div>
+  );
+}
+
+/* ─────────────────────────────── */
+/* DELETE CONFIRM MODAL           */
+/* ─────────────────────────────── */
+function DeleteConfirmModal({
+  wallet,
+  twitter,
+  deleting,
+  onConfirm,
+  onClose,
+}: {
+  wallet: string;
+  twitter?: string | null;
+  deleting: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal onClose={onClose}>
+      <div className="mb-4 flex items-center gap-2">
+        <Trash2 className="h-5 w-5 text-destructive" />
+        <h2 className="text-lg font-bold">Remove from Whitelist</h2>
+      </div>
+
+      <div className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+        <p className="text-sm">
+          Remove this wallet from whitelist?
+        </p>
+        <div className="space-y-1 text-xs">
+          <div className="flex items-start gap-2">
+            <span className="text-muted-foreground">Wallet:</span>
+            <span className="break-all font-mono">{wallet}</span>
+          </div>
+          {twitter && (
+            <div className="flex items-start gap-2">
+              <span className="text-muted-foreground">Twitter:</span>
+              <span className="font-mono">@{twitter}</span>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-destructive">
+          ⚠️ User will lose access to `/app` until they submit a new request.
+        </p>
+      </div>
+
+      <div className="mt-6 flex justify-end gap-2">
+        <button
+          onClick={onClose}
+          disabled={deleting}
+          className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onConfirm}
+          disabled={deleting}
+          className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2 text-sm font-semibold text-destructive-foreground hover:bg-destructive/90 disabled:opacity-50"
+        >
+          {deleting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" /> Removing…
+            </>
+          ) : (
+            <>
+              <Trash2 className="h-4 w-4" /> Remove
+            </>
+          )}
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -902,7 +1013,6 @@ function AnalyticsTab({
         </button>
       </div>
 
-      {/* Summary stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={Users}
@@ -930,7 +1040,6 @@ function AnalyticsTab({
         />
       </div>
 
-      {/* TVL Trend */}
       <ChartFrame
         title="Protocol TVL Trend"
         subtitle={`Last 30 days · ${analytics.summary.totalSnapshots} snapshot(s)`}
@@ -943,7 +1052,6 @@ function AnalyticsTab({
         <ActivityLine data={tvlSeries} label={NETWORK.symbol} />
       </ChartFrame>
 
-      {/* User growth + Funnel */}
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartFrame
           title="Cumulative Users"
@@ -962,7 +1070,6 @@ function AnalyticsTab({
         </ChartFrame>
       </div>
 
-      {/* Vault stats */}
       <div className="grid gap-4 lg:grid-cols-2">
         <ChartFrame
           title="TVL Share per Vault"
@@ -1000,7 +1107,6 @@ function AnalyticsTab({
         </div>
       </div>
 
-      {/* Daily activity table */}
       <div className="panel p-6">
         <h3 className="font-display text-sm">Daily Activity (Last 30 Days)</h3>
         <div className="mt-4 max-h-96 overflow-y-auto">
@@ -1041,7 +1147,6 @@ function AnalyticsTab({
         </div>
       </div>
 
-      {/* Info */}
       <div className="panel p-6">
         <div className="flex items-start gap-3 text-xs text-muted-foreground">
           <Activity className="h-4 w-4 shrink-0 text-primary" />
@@ -1239,11 +1344,13 @@ function WhitelistTab({
   loading,
   adminKeySet,
   onRefresh,
+  onDelete,
 }: {
   entries: WhitelistEntry[];
   loading: boolean;
   adminKeySet: boolean;
   onRefresh: () => void;
+  onDelete: (wallet: string, twitter?: string | null) => void;
 }) {
   if (!adminKeySet) {
     return (
@@ -1300,6 +1407,7 @@ function WhitelistTab({
                 <th className="pb-3 pr-4">Twitter</th>
                 <th className="pb-3 pr-4">Telegram</th>
                 <th className="pb-3 pr-4 text-right">Approved</th>
+                <th className="pb-3 text-right">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -1339,6 +1447,15 @@ function WhitelistTab({
                   </td>
                   <td className="py-3 pr-4 text-right text-xs text-muted-foreground">
                     {new Date(e.approved_at).toLocaleDateString("en-US")}
+                  </td>
+                  <td className="py-3 text-right">
+                    <button
+                      onClick={() => onDelete(e.wallet, e.twitter)}
+                      title="Remove from whitelist"
+                      className="inline-flex h-7 w-7 items-center justify-center rounded border border-destructive/40 text-destructive transition hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                   </td>
                 </tr>
               ))}
