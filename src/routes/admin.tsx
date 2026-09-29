@@ -31,6 +31,7 @@ import {
   Twitter,
   Send,
   UserX,
+  XCircle,
   BarChart3,
 } from "lucide-react";
 import { NETWORK, explorerTx, explorerAddress } from "@/lib/chain-config";
