@@ -1,11 +1,23 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { AlertTriangle, ExternalLink, Loader2 } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
+import {
+  AlertTriangle,
+  ExternalLink,
+  Loader2,
+  ShieldCheck,
+  Clock,
+  XCircle,
+  ArrowRight,
+  Lock,
+} from "lucide-react";
 import { NetworkGuard } from "@/components/NetworkGuard";
 import { explorerAddress, NETWORK } from "@/lib/chain-config";
 import { useVaultTvl } from "@/hooks/useVaultTvl";
 import { useLedger } from "@/hooks/useLedger";
 import { ActivityLine, ChartFrame, SharePie } from "@/components/charts";
 import { cumulativeSeries, vaultShare } from "@/lib/activity-metrics";
+import { fetchAccessStatus, type AccessStatus } from "@/lib/api";
 
 export const Route = createFileRoute("/app/vaults")({
   head: () => ({
@@ -35,11 +47,32 @@ export const Route = createFileRoute("/app/vaults")({
 function Vaults() {
   const { tvl, vaults, configured, isLoading, error } = useVaultTvl();
   const { entries, positionFor } = useLedger();
+  const { address, isConnected } = useAccount();
   const share = vaultShare(vaults.map((v) => ({ name: v.name, balance: v.balance })));
   const series = cumulativeSeries(entries);
 
+  const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null);
+  const [loadingAccess, setLoadingAccess] = useState(false);
+
+  useEffect(() => {
+    if (!address) {
+      setAccessStatus(null);
+      return;
+    }
+    setLoadingAccess(true);
+    fetchAccessStatus(address)
+      .then(setAccessStatus)
+      .catch((e) => console.error("access check:", e))
+      .finally(() => setLoadingAccess(false));
+  }, [address]);
+
   return (
     <div className="space-y-6">
+      {/* Access Status Banner */}
+      {isConnected && (
+        <AccessBanner status={accessStatus} loading={loadingAccess} />
+      )}
+
       <div>
         <h1 className="text-2xl md:text-3xl">
           <span className="neon-text">Vaults</span>
@@ -145,6 +178,111 @@ function Vaults() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────── */
+function AccessBanner({
+  status,
+  loading,
+}: {
+  status: AccessStatus | null;
+  loading: boolean;
+}) {
+  if (loading && !status) {
+    return (
+      <div className="panel flex items-center gap-2 p-4 text-xs text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        Memeriksa status akses…
+      </div>
+    );
+  }
+
+  if (!status) return null;
+
+  /* Approved */
+  if (status.whitelisted) {
+    return (
+      <div className="panel flex items-center gap-3 border-success/40 bg-success/5 p-4">
+        <ShieldCheck className="h-5 w-5 flex-shrink-0 text-success" />
+        <div className="text-sm">
+          <p className="font-semibold text-success">Akses Disetujui ✅</p>
+          <p className="text-xs text-muted-foreground">
+            Wallet kamu sudah diverifikasi. Bisa deposit ke vault.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* Pending */
+  if (status.status === "pending") {
+    return (
+      <div className="panel flex flex-wrap items-center justify-between gap-3 border-warning/40 bg-warning/5 p-4">
+        <div className="flex items-center gap-3">
+          <Clock className="h-5 w-5 flex-shrink-0 text-warning" />
+          <div className="text-sm">
+            <p className="font-semibold text-warning">Menunggu Review ⏳</p>
+            <p className="text-xs text-muted-foreground">
+              Request kamu sedang ditinjau owner. Biasanya dalam 1x24 jam.
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/app/request-access"
+          className="inline-flex items-center gap-1 rounded-lg border border-warning/40 px-3 py-1.5 text-xs text-warning hover:border-warning"
+        >
+          Lihat Status <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+    );
+  }
+
+  /* Rejected */
+  if (status.status === "rejected") {
+    return (
+      <div className="panel flex flex-wrap items-center justify-between gap-3 border-destructive/40 bg-destructive/5 p-4">
+        <div className="flex items-center gap-3">
+          <XCircle className="h-5 w-5 flex-shrink-0 text-destructive" />
+          <div className="text-sm">
+            <p className="font-semibold text-destructive">Request Ditolak ❌</p>
+            <p className="text-xs text-muted-foreground">
+              {status.rejectReason
+                ? `Alasan: ${status.rejectReason}`
+                : "Kamu bisa submit ulang setelah 24 jam."}
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/app/request-access"
+          className="inline-flex items-center gap-1 rounded-lg border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:border-destructive"
+        >
+          Detail <ArrowRight className="h-3 w-3" />
+        </Link>
+      </div>
+    );
+  }
+
+  /* No request yet */
+  return (
+    <div className="panel flex flex-wrap items-center justify-between gap-3 border-primary/40 bg-primary/5 p-4">
+      <div className="flex items-center gap-3">
+        <Lock className="h-5 w-5 flex-shrink-0 text-primary" />
+        <div className="text-sm">
+          <p className="font-semibold text-primary">Akses Diperlukan 🔒</p>
+          <p className="text-xs text-muted-foreground">
+            Untuk deposit ke vault, kamu perlu request akses dulu.
+            Follow Twitter resmi & join Telegram, lalu isi form.
+          </p>
+        </div>
+      </div>
+      <Link
+        to="/app/request-access"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+      >
+        Request Access <ArrowRight className="h-3 w-3" />
+      </Link>
     </div>
   );
 }
