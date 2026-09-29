@@ -23,8 +23,11 @@ import {
   Loader2,
   X,
   AlertOctagon,
+  Copy,
+  Check,
+  Scan,
 } from "lucide-react";
-import { NETWORK, explorerTx } from "@/lib/chain-config";
+import { NETWORK, explorerTx, explorerAddress } from "@/lib/chain-config";
 import {
   fetchSummary,
   fetchOwnerShares,
@@ -108,9 +111,9 @@ function Admin() {
           <p className="mt-2 text-sm text-muted-foreground">
             Only the project owner can access this admin panel.
           </p>
-          <p className="mt-2 text-xs text-muted-foreground">
-            Your wallet: {address?.slice(0, 6)}...{address?.slice(-4)}
-          </p>
+          <div className="mt-2 flex justify-center">
+            <AddressChip address={address!} />
+          </div>
           <div className="mt-6 flex justify-center">
             <ConnectButton showBalance={false} chainStatus="icon" accountStatus="address" />
           </div>
@@ -126,6 +129,98 @@ function Admin() {
 }
 
 /* ─────────────────────────────── */
+/* KOMPONEN COPY & SCAN           */
+/* ─────────────────────────────── */
+
+function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      console.error("Copy failed:", e);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={label}
+      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border border-border text-muted-foreground transition hover:border-primary hover:text-primary"
+    >
+      {copied ? (
+        <Check className="h-3 w-3 text-success" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
+    </button>
+  );
+}
+
+function ScanButton({ address, label = "View on Explorer" }: { address: string; label?: string }) {
+  return (
+    <a
+      href={explorerAddress(address)}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={label}
+      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border border-border text-muted-foreground transition hover:border-primary hover:text-primary"
+    >
+      <Scan className="h-3 w-3" />
+    </a>
+  );
+}
+
+function AddressChip({
+  address,
+  short = false,
+  label,
+}: {
+  address: string;
+  short?: boolean;
+  label?: string;
+}) {
+  const [copied, setCopied] = useState(false);
+  const display = short ? `${address.slice(0, 10)}...${address.slice(-8)}` : address;
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(address);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-background/50 px-2 py-1">
+      {label && (
+        <span className="text-xs uppercase tracking-widest text-muted-foreground">
+          {label}
+        </span>
+      )}
+      <span className="font-mono text-xs text-foreground">{display}</span>
+      <button
+        onClick={handleCopy}
+        title="Copy address"
+        className="text-muted-foreground transition hover:text-primary"
+      >
+        {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+      </button>
+      <a
+        href={explorerAddress(address)}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="View on explorer"
+        className="text-muted-foreground transition hover:text-primary"
+      >
+        <Scan className="h-3 w-3" />
+      </a>
+    </div>
+  );
+}
+
+/* ─────────────────────────────── */
 function AdminDashboard() {
   const { address } = useAccount();
   const { data: ownerBalance } = useBalance({ address: address as Address });
@@ -136,16 +231,13 @@ function AdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Admin key state
   const [adminKey, setAdminKey] = useState<string>("");
   const [showKeyInput, setShowKeyInput] = useState(false);
 
-  // Withdraw modal state
   const [withdrawTarget, setWithdrawTarget] = useState<string | "ALL" | null>(null);
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawResult, setWithdrawResult] = useState<any>(null);
 
-  // Toast state
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; msg: string; txHash?: string } | null>(null);
 
   useEffect(() => {
@@ -227,7 +319,6 @@ function AdminDashboard() {
         }
       }
 
-      // Refresh data
       await load();
     } catch (e: any) {
       setToast({ type: "error", msg: e.message });
@@ -253,9 +344,12 @@ function AdminDashboard() {
             <h1 className="text-3xl font-bold">
               <span className="neon-text">Admin Dashboard</span>
             </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Owner-only · {NETWORK.name} · Wallet: {address?.slice(0, 6)}...{address?.slice(-4)}
-            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span>Owner-only · {NETWORK.name}</span>
+              <span>·</span>
+              <span>Connected:</span>
+              {address && <AddressChip address={address} />}
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -413,9 +507,9 @@ function AdminDashboard() {
                     {summary.keeper.status === "healthy" ? "Healthy" : "Low Balance"}
                   </span>
                 </p>
-                <p className="font-mono text-xs text-muted-foreground">
-                  {summary.keeper.address.slice(0, 10)}...{summary.keeper.address.slice(-8)}
-                </p>
+                <div className="mt-1">
+                  <AddressChip address={summary.keeper.address} />
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-6 text-sm">
@@ -447,9 +541,9 @@ function AdminDashboard() {
               return (
                 <div key={v.key} className="panel card-3d p-6">
                   <h3 className="text-lg font-semibold">{v.name}</h3>
-                  <p className="mt-1 font-mono text-xs text-muted-foreground">
-                    {v.address.slice(0, 10)}...{v.address.slice(-8)}
-                  </p>
+                  <div className="mt-2">
+                    <AddressChip address={v.address} />
+                  </div>
                   <div className="mt-4 space-y-3 text-sm">
                     <Row label="Balance" value={`${v.balance.toFixed(4)} ${NETWORK.symbol}`} />
                     <Row label="Deposited" value={`${v.deposited.toFixed(4)} ${NETWORK.symbol}`} />
@@ -457,11 +551,7 @@ function AdminDashboard() {
                     <Row label="Profit Rate" value={`${v.profitRate.toFixed(2)}%`} />
                     <Row
                       label="Your Shares"
-                      value={
-                        shares
-                          ? `${shares.shares.toFixed(6)}`
-                          : "—"
-                      }
+                      value={shares ? `${shares.shares.toFixed(6)}` : "—"}
                     />
                   </div>
                   <button
@@ -526,6 +616,7 @@ function AdminDashboard() {
             <li>• Withdraw dieksekusi oleh backend pakai private key owner.</li>
             <li>• Admin key hanya tersimpan di sesi tab ini (hilang saat close).</li>
             <li>• Rate limit: max 10 withdraw per menit.</li>
+            <li>• Klik ikon 📋 untuk copy alamat, 🔗 untuk buka explorer.</li>
           </ul>
         </div>
       </div>
@@ -658,8 +749,7 @@ function WithdrawModal({
             </div>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            Dana akan ditarik dari vault ke wallet owner <span className="font-mono">0xaAD5...060b</span>.
-            Transaksi tidak bisa dibatalkan.
+            Dana akan ditarik ke wallet owner. Transaksi tidak bisa dibatalkan.
           </p>
           <div className="mt-6 flex justify-end gap-2">
             <button
@@ -798,8 +888,12 @@ function UserTable({ users, loading }: { users: UserSummary[]; loading: boolean 
           {users.map((u, i) => (
             <tr key={u.address} className="border-b border-border/40 hover:bg-primary/5">
               <td className="py-3 pr-4 text-xs text-muted-foreground">{i + 1}</td>
-              <td className="py-3 pr-4 font-mono text-xs">
-                {u.address.slice(0, 6)}...{u.address.slice(-4)}
+              <td className="py-3 pr-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs">{u.address}</span>
+                  <CopyButton text={u.address} />
+                  <ScanButton address={u.address} />
+                </div>
               </td>
               <td className="py-3 pr-4 text-right font-mono text-success">
                 {u.totalDeposited.toFixed(4)}
@@ -849,8 +943,12 @@ function ActivityTable({ activity }: { activity: ActivityItem[] }) {
         <tbody>
           {activity.slice(0, 200).map((a, i) => (
             <tr key={`${a.txHash}-${i}`} className="border-b border-border/40 hover:bg-primary/5">
-              <td className="py-3 pr-4 font-mono text-xs">
-                {a.user.slice(0, 6)}...{a.user.slice(-4)}
+              <td className="py-3 pr-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs">{a.user}</span>
+                  <CopyButton text={a.user} />
+                  <ScanButton address={a.user} />
+                </div>
               </td>
               <td className="py-3 pr-4">
                 <span
