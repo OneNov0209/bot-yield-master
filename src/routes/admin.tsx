@@ -31,8 +31,10 @@ import {
   Twitter,
   Send,
   UserX,
+  BarChart3,
 } from "lucide-react";
 import { NETWORK, explorerTx, explorerAddress } from "@/lib/chain-config";
+import { ChartFrame, SharePie, ActivityLine } from "@/components/charts";
 import {
   fetchSummary,
   fetchOwnerShares,
@@ -42,12 +44,14 @@ import {
   fetchWhitelistAll,
   approveRequest,
   rejectRequest,
+  fetchAnalytics,
   type Summary,
   type UserSummary,
   type ActivityItem,
   type OwnerShares,
   type AccessRequest,
   type WhitelistEntry,
+  type Analytics,
 } from "@/lib/api";
 
 const Web3Provider = lazy(() => import("@/components/Web3Provider"));
@@ -140,7 +144,7 @@ function Admin() {
 }
 
 /* ─────────────────────────────── */
-/* KOMPONEN COPY & SCAN           */
+/* COPY & SCAN COMPONENTS         */
 /* ─────────────────────────────── */
 
 function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
@@ -274,10 +278,12 @@ function AdminDashboard() {
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; msg: string; txHash?: string } | null>(null);
 
   // Tabs
-  const [activeTab, setActiveTab] = useState<"dashboard" | "requests" | "whitelist">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "requests" | "whitelist" | "analytics">("dashboard");
   const [pendingRequests, setPendingRequests] = useState<AccessRequest[]>([]);
   const [whitelist, setWhitelist] = useState<WhitelistEntry[]>([]);
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   useEffect(() => {
     const saved = sessionStorage.getItem(ADMIN_KEY_STORAGE);
@@ -332,20 +338,33 @@ function AdminDashboard() {
     }
   };
 
+  const loadAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const data = await fetchAnalytics();
+      setAnalytics(data);
+    } catch (e: any) {
+      setToast({ type: "error", msg: e.message });
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "requests" || activeTab === "whitelist") loadRequests();
+    if (activeTab === "analytics") loadAnalytics();
   }, [activeTab, adminKey]);
 
   const handleSaveKey = (key: string) => {
     setAdminKey(key);
     sessionStorage.setItem(ADMIN_KEY_STORAGE, key);
     setShowKeyInput(false);
-    setToast({ type: "info", msg: "Admin key tersimpan untuk sesi ini" });
+    setToast({ type: "info", msg: "Admin key saved for this session" });
   };
 
   const handleWithdraw = async (target: string | "ALL") => {
     if (!adminKey) {
-      setToast({ type: "error", msg: "Admin key belum diisi" });
+      setToast({ type: "error", msg: "Admin key not set" });
       return;
     }
 
@@ -361,21 +380,21 @@ function AdminDashboard() {
         const errorCount = res.results.filter((r: any) => r.status === "error").length;
 
         if (errorCount > 0) {
-          setToast({ type: "error", msg: `Withdraw: ${successCount} sukses, ${skippedCount} skip, ${errorCount} error` });
+          setToast({ type: "error", msg: `Withdraw: ${successCount} success, ${skippedCount} skipped, ${errorCount} error` });
         } else if (successCount > 0) {
-          setToast({ type: "success", msg: `Withdraw sukses dari ${successCount} vault` });
+          setToast({ type: "success", msg: `Withdraw success from ${successCount} vault(s)` });
         } else {
-          setToast({ type: "info", msg: `Tidak ada shares untuk di-withdraw (${skippedCount} vault skip)` });
+          setToast({ type: "info", msg: `No shares to withdraw (${skippedCount} vault skipped)` });
         }
       } else {
         const res = await withdrawFromVault(target, adminKey);
         setWithdrawResult(res);
         if (res.status === "success") {
-          setToast({ type: "success", msg: `Withdraw sukses: ${res.shares} shares`, txHash: res.txHash });
+          setToast({ type: "success", msg: `Withdraw success: ${res.shares} shares`, txHash: res.txHash });
         } else if (res.status === "skipped") {
-          setToast({ type: "info", msg: res.reason || "Tidak ada shares" });
+          setToast({ type: "info", msg: res.reason || "No shares" });
         } else {
-          setToast({ type: "error", msg: res.error || "Withdraw gagal" });
+          setToast({ type: "error", msg: res.error || "Withdraw failed" });
         }
       }
 
@@ -402,7 +421,7 @@ function AdminDashboard() {
   };
 
   const handleReject = async (id: number) => {
-    const reason = window.prompt("Alasan penolakan (opsional):") ?? undefined;
+    const reason = window.prompt("Rejection reason (optional):") ?? undefined;
     try {
       await rejectRequest(id, adminKey, reason);
       setToast({ type: "info", msg: `Request #${id} rejected` });
@@ -486,7 +505,7 @@ function AdminDashboard() {
                   rel="noopener noreferrer"
                   className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
                 >
-                  Lihat di explorer <ExternalLink className="h-3 w-3" />
+                  View on explorer <ExternalLink className="h-3 w-3" />
                 </a>
               )}
             </div>
@@ -514,6 +533,10 @@ function AdminDashboard() {
             <BadgeCheck className="h-4 w-4" />
             Whitelist ({whitelist.length})
           </TabButton>
+          <TabButton active={activeTab === "analytics"} onClick={() => setActiveTab("analytics")}>
+            <BarChart3 className="h-4 w-4" />
+            Analytics
+          </TabButton>
         </div>
 
         {/* ═══════════════════════════════════ */}
@@ -522,7 +545,7 @@ function AdminDashboard() {
         {activeTab === "dashboard" && (
           <>
             <div className="mb-6 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>Last updated: {lastRefresh.toLocaleTimeString("id-ID")}</span>
+              <span>Last updated: {lastRefresh.toLocaleTimeString("en-US")}</span>
               <span>·</span>
               <span>Auto-refresh 30s</span>
               {error && (
@@ -544,8 +567,8 @@ function AdminDashboard() {
                         ⚠️ Emergency Withdraw All
                       </h2>
                       <p className="mt-1 text-sm text-muted-foreground">
-                        Owner memiliki <span className="font-mono text-foreground">{totalShares.toFixed(6)}</span> shares
-                        di 3 vault. Klik tombol untuk tarik semua ke wallet owner.
+                        Owner holds <span className="font-mono text-foreground">{totalShares.toFixed(6)}</span> shares
+                        across 3 vaults. Click to withdraw all to owner wallet.
                       </p>
                     </div>
                   </div>
@@ -555,7 +578,7 @@ function AdminDashboard() {
                     className="inline-flex items-center gap-2 rounded-lg bg-destructive px-4 py-2.5 text-sm font-semibold text-destructive-foreground transition hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <ArrowUpFromLine className="h-4 w-4" />
-                    WITHDRAW SEMUA SEKARANG
+                    WITHDRAW ALL NOW
                   </button>
                 </div>
               </div>
@@ -718,11 +741,11 @@ function AdminDashboard() {
                 <Bot className="h-5 w-5 text-primary" /> Info
               </h2>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Data diambil dari API backend VPS (real-time).</li>
-                <li>• Withdraw dieksekusi oleh backend pakai private key owner.</li>
-                <li>• Admin key hanya tersimpan di sesi tab ini (hilang saat close).</li>
-                <li>• Rate limit: max 10 withdraw per menit.</li>
-                <li>• Klik ikon 📋 untuk copy alamat, 🔗 untuk buka explorer.</li>
+                <li>• Data fetched from backend API (real-time).</li>
+                <li>• Withdraw executed by backend using owner private key.</li>
+                <li>• Admin key stored only in this browser session (cleared on close).</li>
+                <li>• Rate limit: max 10 withdraws per minute.</li>
+                <li>• Click 📋 icon to copy address, 🔗 to open explorer.</li>
               </ul>
             </div>
           </>
@@ -753,6 +776,17 @@ function AdminDashboard() {
             onRefresh={loadRequests}
           />
         )}
+
+        {/* ═══════════════════════════════════ */}
+        {/* TAB: ANALYTICS                     */}
+        {/* ═══════════════════════════════════ */}
+        {activeTab === "analytics" && (
+          <AnalyticsTab
+            analytics={analytics}
+            loading={loadingAnalytics}
+            onRefresh={loadAnalytics}
+          />
+        )}
       </div>
 
       {/* Admin Key Modal */}
@@ -770,7 +804,7 @@ function AdminDashboard() {
           target={withdrawTarget}
           vaultName={
             withdrawTarget === "ALL"
-              ? "Semua Vault (3)"
+              ? "All Vaults (3)"
               : summary?.vaults.find((v) => v.key === withdrawTarget)?.name ?? withdrawTarget
           }
           totalShares={
@@ -789,6 +823,238 @@ function AdminDashboard() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────── */
+/* ANALYTICS TAB                  */
+/* ─────────────────────────────── */
+function AnalyticsTab({
+  analytics,
+  loading,
+  onRefresh,
+}: {
+  analytics: Analytics | null;
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  if (loading && !analytics) {
+    return (
+      <div className="panel p-8 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-3 text-sm text-muted-foreground">Loading analytics…</p>
+      </div>
+    );
+  }
+
+  if (!analytics) {
+    return (
+      <div className="panel p-8 text-center">
+        <XCircle className="mx-auto h-8 w-8 text-muted-foreground" />
+        <p className="mt-3 text-sm text-muted-foreground">No analytics data available.</p>
+        <button
+          onClick={onRefresh}
+          className="mt-4 rounded-lg border border-border px-4 py-2 text-sm hover:border-primary hover:text-primary"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  const funnelData = [
+    { name: "Approved", value: analytics.funnel.approved },
+    { name: "Pending", value: analytics.funnel.pending },
+    { name: "Rejected", value: analytics.funnel.rejected },
+  ].filter((d) => d.value > 0);
+
+  const vaultActivityData = analytics.vaultStats
+    .map((v) => ({
+      name: v.name.replace(" Hunter", "").replace(" Bot", ""),
+      value: v.depositAmount,
+    }))
+    .filter((d) => d.value > 0);
+
+  const tvlSeries = analytics.tvlTrend.map((t) => ({
+    time: t.label,
+    value: t.value,
+  }));
+
+  const usersSeries = analytics.cumulativeUsers.map((t) => ({
+    time: t.label,
+    value: t.value,
+  }));
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          <BarChart3 className="h-5 w-5 text-primary" /> Analytics Overview
+        </h2>
+        <button
+          onClick={onRefresh}
+          className="inline-flex items-center gap-1 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:border-primary hover:text-primary"
+        >
+          <RefreshCw className={`h-3 w-3 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+
+      {/* Summary stats */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          icon={Users}
+          label="Total Users"
+          value={`${analytics.summary.totalUsers}`}
+          hint="Unique wallets"
+        />
+        <StatCard
+          icon={UserPlus}
+          label="Total Requests"
+          value={`${analytics.summary.totalRequests}`}
+          hint={`${analytics.funnel.pending} pending`}
+        />
+        <StatCard
+          icon={ArrowDownToLine}
+          label="Avg Daily Deposit"
+          value={`${analytics.summary.avgDailyDeposit.toFixed(4)} BOT`}
+          hint="Last 30 days"
+        />
+        <StatCard
+          icon={ArrowUpFromLine}
+          label="Avg Daily Withdraw"
+          value={`${analytics.summary.avgDailyWithdraw.toFixed(4)} BOT`}
+          hint="Last 30 days"
+        />
+      </div>
+
+      {/* TVL Trend */}
+      <ChartFrame
+        title="Protocol TVL Trend"
+        subtitle={`Last 30 days · ${analytics.summary.totalSnapshots} snapshot(s)`}
+        empty={
+          tvlSeries.length < 2
+            ? "Need at least 2 snapshots. Snapshots are taken hourly — data will accumulate over time."
+            : undefined
+        }
+      >
+        <ActivityLine data={tvlSeries} label={NETWORK.symbol} />
+      </ChartFrame>
+
+      {/* User growth + Funnel */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame
+          title="Cumulative Users"
+          subtitle="New whitelisted wallets over time"
+          empty={usersSeries.length === 0 ? "No user data yet." : undefined}
+        >
+          <ActivityLine data={usersSeries} label="Users" />
+        </ChartFrame>
+
+        <ChartFrame
+          title="Request Funnel"
+          subtitle="Breakdown of all access requests"
+          empty={funnelData.length === 0 ? "No requests yet." : undefined}
+        >
+          <SharePie data={funnelData} />
+        </ChartFrame>
+      </div>
+
+      {/* Vault stats */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ChartFrame
+          title="TVL Share per Vault"
+          subtitle="Live from chain"
+          empty={vaultActivityData.length === 0 ? "No TVL yet." : undefined}
+        >
+          <SharePie data={vaultActivityData} />
+        </ChartFrame>
+
+        <div className="panel card-3d p-5">
+          <h3 className="font-display text-sm">Vault Activity Breakdown</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Deposits & withdrawals per vault (all-time)
+          </p>
+          <div className="mt-4 space-y-3">
+            {analytics.vaultStats.map((v) => (
+              <div key={v.name} className="rounded-lg border border-border/60 p-3 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold">{v.name}</span>
+                  <span className="text-muted-foreground">
+                    {v.depositCount + v.withdrawCount} tx
+                  </span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-4">
+                  <span className="text-success">
+                    ↓ {v.depositCount} dep ({v.depositAmount.toFixed(4)})
+                  </span>
+                  <span className="text-destructive">
+                    ↑ {v.withdrawCount} wd ({v.withdrawAmount.toFixed(4)})
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Daily activity table */}
+      <div className="panel p-6">
+        <h3 className="font-display text-sm">Daily Activity (Last 30 Days)</h3>
+        <div className="mt-4 max-h-96 overflow-y-auto">
+          <table className="w-full text-xs">
+            <thead className="sticky top-0 bg-background">
+              <tr className="border-b border-border text-left text-[10px] uppercase tracking-widest text-muted-foreground">
+                <th className="pb-2 pr-3">Date</th>
+                <th className="pb-2 pr-3 text-right">Deposits</th>
+                <th className="pb-2 pr-3 text-right">Withdrawals</th>
+                <th className="pb-2 pr-3 text-right">New Users</th>
+                <th className="pb-2 text-right">Net Volume</th>
+              </tr>
+            </thead>
+            <tbody>
+              {analytics.daily
+                .filter((d) => d.deposits + d.withdrawals + d.newUsers > 0)
+                .reverse()
+                .map((d) => (
+                  <tr key={d.date} className="border-b border-border/40">
+                    <td className="py-2 pr-3">{d.label}</td>
+                    <td className="py-2 pr-3 text-right text-success">{d.deposits}</td>
+                    <td className="py-2 pr-3 text-right text-destructive">{d.withdrawals}</td>
+                    <td className="py-2 pr-3 text-right text-primary">{d.newUsers}</td>
+                    <td className="py-2 text-right font-mono">
+                      {(d.depositAmount - d.withdrawAmount).toFixed(4)}
+                    </td>
+                  </tr>
+                ))}
+              {analytics.daily.every((d) => d.deposits + d.withdrawals + d.newUsers === 0) && (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-muted-foreground">
+                    No activity in the last 30 days.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="panel p-6">
+        <div className="flex items-start gap-3 text-xs text-muted-foreground">
+          <Activity className="h-4 w-4 shrink-0 text-primary" />
+          <div>
+            <p className="font-semibold text-foreground">About Analytics</p>
+            <ul className="mt-2 space-y-1">
+              <li>• TVL snapshots taken every 1 hour — needs 2+ snapshots to plot trend</li>
+              <li>• Daily activity covers last 30 days from on-chain events</li>
+              <li>• Funnel includes all access requests (pending / approved / rejected)</li>
+              <li>• Data cached for 30 seconds on server</li>
+            </ul>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -816,7 +1082,7 @@ function RequestsTab({
       <div className="panel p-8 text-center">
         <Lock className="mx-auto h-8 w-8 text-warning" />
         <p className="mt-3 text-sm text-muted-foreground">
-          Set admin key terlebih dahulu untuk melihat daftar request.
+          Set the admin key first to view requests.
         </p>
       </div>
     );
@@ -839,7 +1105,7 @@ function RequestsTab({
         </h2>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
-            {requests.length} menunggu review
+            {requests.length} awaiting review
           </span>
           <button
             onClick={onRefresh}
@@ -855,7 +1121,7 @@ function RequestsTab({
         <div className="panel p-8 text-center">
           <CheckCircle2 className="mx-auto h-8 w-8 text-success" />
           <p className="mt-3 text-sm text-muted-foreground">
-            Tidak ada request yang menunggu. Semua sudah direview. ✅
+            No pending requests. All reviewed. ✅
           </p>
         </div>
       ) : (
@@ -886,10 +1152,10 @@ function RequestCard({
   const age = Math.floor((Date.now() - request.submitted_at) / 1000 / 60);
   const ageText =
     age < 60
-      ? `${age} menit lalu`
+      ? `${age} min ago`
       : age < 1440
-      ? `${Math.floor(age / 60)} jam lalu`
-      : `${Math.floor(age / 1440)} hari lalu`;
+      ? `${Math.floor(age / 60)} h ago`
+      : `${Math.floor(age / 1440)} d ago`;
 
   return (
     <div className="panel p-5">
@@ -929,7 +1195,7 @@ function RequestCard({
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-primary hover:border-primary"
               >
-                Lihat Tweet <ExternalLink className="h-3 w-3" />
+                View Tweet <ExternalLink className="h-3 w-3" />
               </a>
             )}
           </div>
@@ -941,7 +1207,7 @@ function RequestCard({
           )}
 
           <p className="text-xs text-muted-foreground">
-            Submitted: {new Date(request.submitted_at).toLocaleString("id-ID")}
+            Submitted: {new Date(request.submitted_at).toLocaleString("en-US")}
           </p>
         </div>
 
@@ -983,7 +1249,7 @@ function WhitelistTab({
       <div className="panel p-8 text-center">
         <Lock className="mx-auto h-8 w-8 text-warning" />
         <p className="mt-3 text-sm text-muted-foreground">
-          Set admin key terlebih dahulu untuk melihat whitelist.
+          Set the admin key first to view the whitelist.
         </p>
       </div>
     );
@@ -1006,7 +1272,7 @@ function WhitelistTab({
         </h2>
         <div className="flex items-center gap-3">
           <span className="text-xs text-muted-foreground">
-            {entries.length} wallet terdaftar
+            {entries.length} wallet(s) registered
           </span>
           <button
             onClick={onRefresh}
@@ -1021,7 +1287,7 @@ function WhitelistTab({
       {entries.length === 0 ? (
         <div className="panel p-8 text-center">
           <BadgeCheck className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">Belum ada wallet di whitelist.</p>
+          <p className="mt-3 text-sm text-muted-foreground">No wallets in whitelist yet.</p>
         </div>
       ) : (
         <div className="panel overflow-x-auto p-6">
@@ -1071,7 +1337,7 @@ function WhitelistTab({
                     ) : "—"}
                   </td>
                   <td className="py-3 pr-4 text-right text-xs text-muted-foreground">
-                    {new Date(e.approved_at).toLocaleDateString("id-ID")}
+                    {new Date(e.approved_at).toLocaleDateString("en-US")}
                   </td>
                 </tr>
               ))}
@@ -1102,13 +1368,13 @@ function AdminKeyModal({
         <h2 className="text-lg font-bold">Admin API Key</h2>
       </div>
       <p className="mb-4 text-sm text-muted-foreground">
-        Masukkan admin key untuk mengaktifkan tombol withdraw & fitur admin. Key hanya tersimpan di sesi tab ini.
+        Enter the admin key to enable withdraw actions and admin features. The key is only stored in this browser session.
       </p>
       <input
         type="password"
         value={key}
         onChange={(e) => setKey(e.target.value)}
-        placeholder="Paste admin key di sini…"
+        placeholder="Paste admin key here…"
         className="w-full rounded-lg border border-border bg-background px-3 py-2 font-mono text-xs"
       />
       <div className="mt-4 flex justify-end gap-2">
@@ -1116,14 +1382,14 @@ function AdminKeyModal({
           onClick={onClose}
           className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary hover:text-primary"
         >
-          Batal
+          Cancel
         </button>
         <button
           onClick={() => onSave(key.trim())}
           disabled={!key.trim()}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
         >
-          Simpan
+          Save
         </button>
       </div>
     </Modal>
@@ -1157,7 +1423,7 @@ function WithdrawModal({
         <>
           <div className="mb-4 flex items-center gap-2">
             <AlertOctagon className="h-5 w-5 text-destructive" />
-            <h2 className="text-lg font-bold">Konfirmasi Withdraw</h2>
+            <h2 className="text-lg font-bold">Confirm Withdraw</h2>
           </div>
           <div className="space-y-2 rounded-lg border border-border p-4 text-sm">
             <div className="flex justify-between">
@@ -1169,11 +1435,11 @@ function WithdrawModal({
               <span className="font-mono">{totalShares.toFixed(6)}</span>
             </div>
             <div className="flex justify-between border-t border-border pt-2 text-destructive">
-              <span>⚠️ Aksi ini akan transfer dana nyata</span>
+              <span>⚠️ This action will transfer real funds</span>
             </div>
           </div>
           <p className="mt-4 text-xs text-muted-foreground">
-            Dana akan ditarik ke wallet owner. Transaksi tidak bisa dibatalkan.
+            Funds will be withdrawn to the owner wallet. This transaction cannot be undone.
           </p>
           <div className="mt-6 flex justify-end gap-2">
             <button
@@ -1181,7 +1447,7 @@ function WithdrawModal({
               disabled={processing}
               className="rounded-lg border border-border px-4 py-2 text-sm text-muted-foreground hover:border-primary hover:text-primary disabled:opacity-50"
             >
-              Batal
+              Cancel
             </button>
             <button
               onClick={onConfirm}
@@ -1194,7 +1460,7 @@ function WithdrawModal({
                 </>
               ) : (
                 <>
-                  <ArrowUpFromLine className="h-4 w-4" /> Konfirmasi Withdraw
+                  <ArrowUpFromLine className="h-4 w-4" /> Confirm Withdraw
                 </>
               )}
             </button>
@@ -1211,7 +1477,7 @@ function WithdrawModal({
               <AlertOctagon className="h-5 w-5 text-destructive" />
             )}
             <h2 className="text-lg font-bold">
-              {success ? "✅ Withdraw Sukses" : skipped ? "ℹ️ Tidak Ada Shares" : "❌ Withdraw Gagal"}
+              {success ? "✅ Withdraw Successful" : skipped ? "ℹ️ No Shares" : "❌ Withdraw Failed"}
             </h2>
           </div>
 
@@ -1222,7 +1488,7 @@ function WithdrawModal({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
             >
-              Lihat transaksi <ExternalLink className="h-3 w-3" />
+              View transaction <ExternalLink className="h-3 w-3" />
             </a>
           )}
 
@@ -1258,7 +1524,7 @@ function WithdrawModal({
             onClick={onClose}
             className="mt-6 w-full rounded-lg border border-border px-4 py-2 text-sm hover:border-primary hover:text-primary"
           >
-            Tutup
+            Close
           </button>
         </>
       )}
@@ -1289,7 +1555,7 @@ function UserTable({ users, loading }: { users: UserSummary[]; loading: boolean 
   if (users.length === 0)
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        Belum ada user.
+        No users yet.
       </p>
     );
 
@@ -1336,7 +1602,7 @@ function UserTable({ users, loading }: { users: UserSummary[]; loading: boolean 
                 <span className="text-destructive">{u.withdrawCount}</span>
               </td>
               <td className="py-3 text-right text-xs text-muted-foreground">
-                {new Date(u.lastActivity * 1000).toLocaleDateString("id-ID")}
+                {new Date(u.lastActivity * 1000).toLocaleDateString("en-US")}
               </td>
             </tr>
           ))}
@@ -1348,7 +1614,7 @@ function UserTable({ users, loading }: { users: UserSummary[]; loading: boolean 
 
 function ActivityTable({ activity }: { activity: ActivityItem[] }) {
   if (activity.length === 0)
-    return <p className="py-8 text-center text-sm text-muted-foreground">Belum ada aktivitas.</p>;
+    return <p className="py-8 text-center text-sm text-muted-foreground">No activity yet.</p>;
 
   return (
     <div className="max-h-96 overflow-y-auto">
@@ -1398,7 +1664,7 @@ function ActivityTable({ activity }: { activity: ActivityItem[] }) {
                 {a.profit > 0 ? `+${a.profit.toFixed(6)}` : "—"}
               </td>
               <td className="py-3 pr-4 text-xs text-muted-foreground">
-                {new Date(a.timestamp * 1000).toLocaleString("id-ID")}
+                {new Date(a.timestamp * 1000).toLocaleString("en-US")}
               </td>
               <td className="py-3 text-right">
                 <a
