@@ -34,8 +34,13 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
-import { NETWORK } from "@/lib/chain-config";
-import { fetchSummary, type Summary, type UserSummary, type ActivityItem } from "@/lib/api";
+import { NETWORK, explorerTx } from "@/lib/chain-config";
+import {
+  fetchSummary,
+  type Summary,
+  type UserSummary,
+  type ActivityItem,
+} from "@/lib/api";
 
 const Web3Provider = lazy(() => import("@/components/Web3Provider"));
 
@@ -596,7 +601,7 @@ function ActivityTable({ activity }: { activity: ActivityItem[] }) {
               </td>
               <td className="py-3 text-right">
                 <a
-                  href={`${NETWORK.explorerUrl}/tx/${a.txHash}`}
+                  href={explorerTx(a.txHash)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex text-primary hover:underline"
