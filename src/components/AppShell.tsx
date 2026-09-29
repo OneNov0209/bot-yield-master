@@ -1,6 +1,13 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { Link } from "@tanstack/react-router";
-import { LayoutDashboard, Bot, Vault, History, ExternalLink } from "lucide-react";
+import {
+  LayoutDashboard,
+  Bot,
+  Vault,
+  History,
+  Trophy,
+  ExternalLink,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { NETWORK } from "@/lib/chain-config";
 import logo from "@/assets/botchain-logo.png";
@@ -10,6 +17,7 @@ const NAV = [
   { to: "/app/agents", label: "Agents", icon: Bot },
   { to: "/app/vaults", label: "Vaults", icon: Vault },
   { to: "/app/transactions", label: "Transactions", icon: History },
+  { to: "/app/leaderboard", label: "Leaderboard", icon: Trophy },
 ] as const;
 
 export function AppShell({ children }: { children: ReactNode }) {
