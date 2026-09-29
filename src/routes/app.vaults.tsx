@@ -194,7 +194,7 @@ function AccessBanner({
     return (
       <div className="panel flex items-center gap-2 p-4 text-xs text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin text-primary" />
-        Memeriksa status akses…
+        Checking access status…
       </div>
     );
   }
@@ -207,9 +207,9 @@ function AccessBanner({
       <div className="panel flex items-center gap-3 border-success/40 bg-success/5 p-4">
         <ShieldCheck className="h-5 w-5 flex-shrink-0 text-success" />
         <div className="text-sm">
-          <p className="font-semibold text-success">Akses Disetujui ✅</p>
+          <p className="font-semibold text-success">Access Approved ✅</p>
           <p className="text-xs text-muted-foreground">
-            Wallet kamu sudah diverifikasi. Bisa deposit ke vault.
+            Your wallet has been verified. You can now deposit to vaults.
           </p>
         </div>
       </div>
@@ -223,9 +223,9 @@ function AccessBanner({
         <div className="flex items-center gap-3">
           <Clock className="h-5 w-5 flex-shrink-0 text-warning" />
           <div className="text-sm">
-            <p className="font-semibold text-warning">Menunggu Review ⏳</p>
+            <p className="font-semibold text-warning">Pending Review ⏳</p>
             <p className="text-xs text-muted-foreground">
-              Request kamu sedang ditinjau owner. Biasanya dalam 1x24 jam.
+              Your request is being reviewed by the owner. Usually within 24 hours.
             </p>
           </div>
         </div>
@@ -233,7 +233,7 @@ function AccessBanner({
           to="/app/request-access"
           className="inline-flex items-center gap-1 rounded-lg border border-warning/40 px-3 py-1.5 text-xs text-warning hover:border-warning"
         >
-          Lihat Status <ArrowRight className="h-3 w-3" />
+          View Status <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
     );
@@ -246,11 +246,11 @@ function AccessBanner({
         <div className="flex items-center gap-3">
           <XCircle className="h-5 w-5 flex-shrink-0 text-destructive" />
           <div className="text-sm">
-            <p className="font-semibold text-destructive">Request Ditolak ❌</p>
+            <p className="font-semibold text-destructive">Request Rejected ❌</p>
             <p className="text-xs text-muted-foreground">
               {status.rejectReason
-                ? `Alasan: ${status.rejectReason}`
-                : "Kamu bisa submit ulang setelah 24 jam."}
+                ? `Reason: ${status.rejectReason}`
+                : "You can submit a new request after 24 hours."}
             </p>
           </div>
         </div>
@@ -258,7 +258,7 @@ function AccessBanner({
           to="/app/request-access"
           className="inline-flex items-center gap-1 rounded-lg border border-destructive/40 px-3 py-1.5 text-xs text-destructive hover:border-destructive"
         >
-          Detail <ArrowRight className="h-3 w-3" />
+          Details <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
     );
@@ -270,10 +270,10 @@ function AccessBanner({
       <div className="flex items-center gap-3">
         <Lock className="h-5 w-5 flex-shrink-0 text-primary" />
         <div className="text-sm">
-          <p className="font-semibold text-primary">Akses Diperlukan 🔒</p>
+          <p className="font-semibold text-primary">Access Required 🔒</p>
           <p className="text-xs text-muted-foreground">
-            Untuk deposit ke vault, kamu perlu request akses dulu.
-            Follow Twitter resmi & join Telegram, lalu isi form.
+            To deposit to vaults, you need to request access first.
+            Follow our official Twitter accounts & join Telegram, then fill the form.
           </p>
         </div>
       </div>
