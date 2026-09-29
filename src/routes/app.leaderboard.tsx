@@ -10,9 +10,12 @@ import {
   Activity,
   Loader2,
   RefreshCw,
+  Copy,
+  Check,
+  Scan,
 } from "lucide-react";
 import { NetworkGuard } from "@/components/NetworkGuard";
-import { NETWORK } from "@/lib/chain-config";
+import { NETWORK, explorerAddress } from "@/lib/chain-config";
 import { fetchUsers, type UserSummary } from "@/lib/api";
 
 export const Route = createFileRoute("/app/leaderboard")({
@@ -74,7 +77,8 @@ function Leaderboard() {
     if (sortBy === "deposit") list.sort((a, b) => b.totalDeposited - a.totalDeposited);
     if (sortBy === "activity")
       list.sort(
-        (a, b) => b.depositCount + b.withdrawCount - (a.depositCount + a.withdrawCount),
+        (a, b) =>
+          b.depositCount + b.withdrawCount - (a.depositCount + a.withdrawCount),
       );
     return list;
   }, [users, sortBy]);
@@ -106,7 +110,7 @@ function Leaderboard() {
         </button>
       </div>
 
-      {/* My Rank Card (jika user connect & punya aktivitas) */}
+      {/* My Rank Card */}
       {myRank > 0 && (
         <div className="panel card-3d border-primary/40 bg-primary/5 p-5">
           <div className="flex items-center justify-between gap-4">
@@ -143,7 +147,6 @@ function Leaderboard() {
         </div>
       )}
 
-      {/* Loading */}
       {loading && users.length === 0 && (
         <div className="panel p-12 text-center">
           <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
@@ -151,7 +154,6 @@ function Leaderboard() {
         </div>
       )}
 
-      {/* Leaderboard */}
       {!loading && users.length === 0 && (
         <div className="panel p-12 text-center">
           <Trophy className="mx-auto h-10 w-10 text-muted-foreground" />
@@ -205,14 +207,14 @@ function Leaderboard() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs">
-                            {u.address.slice(0, 6)}...{u.address.slice(-4)}
-                          </span>
+                          <span className="font-mono text-xs">{u.address}</span>
                           {isMe && (
                             <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">
                               YOU
                             </span>
                           )}
+                          <CopyButton text={u.address} />
+                          <ScanButton address={u.address} />
                         </div>
                       </td>
                       <td className="p-4 text-right font-mono text-success">
@@ -238,11 +240,57 @@ function Leaderboard() {
         </div>
       )}
 
-      {/* Info Footer */}
       <p className="text-center text-xs text-muted-foreground">
         Last updated: {lastRefresh.toLocaleTimeString("en-US")} · Auto-refresh 30s
       </p>
     </div>
+  );
+}
+
+/* ─────────────────────────────── */
+/* COPY & SCAN                    */
+/* ─────────────────────────────── */
+function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch (e) {
+      console.error("Copy failed:", e);
+    }
+  };
+
+  return (
+    <button
+      onClick={handleCopy}
+      title={label}
+      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border border-border text-muted-foreground transition hover:border-primary hover:text-primary"
+    >
+      {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
+    </button>
+  );
+}
+
+function ScanButton({
+  address,
+  label = "View on Explorer",
+}: {
+  address: string;
+  label?: string;
+}) {
+  return (
+    <a
+      href={explorerAddress(address)}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={label}
+      className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded border border-border text-muted-foreground transition hover:border-primary hover:text-primary"
+    >
+      <Scan className="h-3 w-3" />
+    </a>
   );
 }
 
@@ -274,9 +322,7 @@ function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) return <Medal className="mx-auto h-5 w-5 text-yellow-400" />;
   if (rank === 2) return <Medal className="mx-auto h-5 w-5 text-gray-300" />;
   if (rank === 3) return <Medal className="mx-auto h-5 w-5 text-amber-600" />;
-  return (
-    <span className="font-mono text-xs text-muted-foreground">#{rank}</span>
-  );
+  return <span className="font-mono text-xs text-muted-foreground">#{rank}</span>;
 }
 
 function PodiumCard({
@@ -315,7 +361,7 @@ function PodiumCard({
         {rank === 2 && <Medal className={`h-6 w-6 ${colors.text}`} />}
         {rank === 3 && <Award className={`h-6 w-6 ${colors.text}`} />}
         <p className={`mt-2 font-mono text-[10px] ${colors.text}`}>
-          {user.address.slice(0, 6)}...{user.address.slice(-4)}
+          {user.address.slice(0, 8)}...{user.address.slice(-6)}
         </p>
         <p className="mt-1 font-display text-sm font-semibold">{value}</p>
         <p className="text-[10px] text-muted-foreground">{label}</p>
