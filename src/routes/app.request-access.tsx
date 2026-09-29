@@ -12,6 +12,7 @@ import {
   ArrowLeft,
   ExternalLink,
   Clock,
+  XCircle,
 } from "lucide-react";
 import {
   fetchAccessStatus,
@@ -20,6 +21,15 @@ import {
 } from "@/lib/api";
 
 export const Route = createFileRoute("/app/request-access")({
+  head: () => ({
+    meta: [
+      { title: "Request Access — BOT Yield Master" },
+      {
+        name: "description",
+        content: "Request access to deposit into BOT Yield Master vaults.",
+      },
+    ],
+  }),
   component: RequestAccessPage,
 });
 
@@ -31,10 +41,12 @@ function RequestAccessPage() {
   const { address, isConnected } = useAccount();
   const [status, setStatus] = useState<AccessStatus | null>(null);
   const [loadingStatus, setLoadingStatus] = useState(false);
+
   const [twitter, setTwitter] = useState("");
   const [telegram, setTelegram] = useState("");
   const [tweetUrl, setTweetUrl] = useState("");
   const [note, setNote] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -86,11 +98,17 @@ function RequestAccessPage() {
           <ShieldCheck className="mx-auto h-12 w-12 text-primary" />
           <h1 className="mt-4 text-2xl font-bold">Request Access</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Connect your wallet terlebih dahulu untuk request akses.
+            Connect wallet terlebih dahulu untuk request akses.
           </p>
           <div className="mt-6 flex justify-center">
             <ConnectButton />
           </div>
+          <Link
+            to="/app/vaults"
+            className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" /> Kembali ke Vaults
+          </Link>
         </div>
       </div>
     );
@@ -123,9 +141,7 @@ function RequestAccessPage() {
       <div className="mx-auto max-w-xl px-4 py-12">
         <div className="panel border-warning/40 bg-warning/5 p-8 text-center">
           <Clock className="mx-auto h-12 w-12 text-warning" />
-          <h1 className="mt-4 text-2xl font-bold text-warning">
-            Menunggu Review
-          </h1>
+          <h1 className="mt-4 text-2xl font-bold text-warning">Menunggu Review</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Request kamu sedang ditinjau oleh owner. Biasanya selesai dalam 1x24 jam.
           </p>
@@ -154,6 +170,12 @@ function RequestAccessPage() {
             <Loader2 className={`h-4 w-4 ${loadingStatus ? "animate-spin" : ""}`} />
             Cek Status
           </button>
+          <Link
+            to="/app/vaults"
+            className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" /> Kembali ke Vaults
+          </Link>
         </div>
       </div>
     );
@@ -164,10 +186,8 @@ function RequestAccessPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-12">
         <div className="panel border-destructive/40 bg-destructive/5 p-8 text-center">
-          <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
-          <h1 className="mt-4 text-2xl font-bold text-destructive">
-            Request Ditolak
-          </h1>
+          <XCircle className="mx-auto h-12 w-12 text-destructive" />
+          <h1 className="mt-4 text-2xl font-bold text-destructive">Request Ditolak</h1>
           {status.rejectReason && (
             <p className="mt-2 text-sm text-muted-foreground">
               Alasan: {status.rejectReason}
@@ -176,6 +196,12 @@ function RequestAccessPage() {
           <p className="mt-2 text-sm text-muted-foreground">
             Kamu bisa submit ulang setelah 24 jam.
           </p>
+          <Link
+            to="/app/vaults"
+            className="mt-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" /> Kembali ke Vaults
+          </Link>
         </div>
       </div>
     );
@@ -188,7 +214,7 @@ function RequestAccessPage() {
         to="/app/vaults"
         className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary"
       >
-        <ArrowLeft className="h-4 w-4" /> Kembali
+        <ArrowLeft className="h-4 w-4" /> Kembali ke Vaults
       </Link>
 
       <div className="panel p-8">
@@ -215,9 +241,7 @@ function RequestAccessPage() {
           </Step>
 
           <Step n={2} title="Join Telegram Channel">
-            <p className="text-sm text-muted-foreground">
-              Join channel Telegram resmi.
-            </p>
+            <p className="text-sm text-muted-foreground">Join channel Telegram resmi.</p>
             <div className="mt-3">
               <SocialLink href={TELEGRAM_URL} icon={Send} label="BOTYieldMaster" />
             </div>
