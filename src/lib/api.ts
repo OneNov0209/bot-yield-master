@@ -72,3 +72,69 @@ export const fetchVaults = () => apiFetch<VaultSummary[]>("/api/vaults");
 export const fetchUsers = () => apiFetch<UserSummary[]>("/api/users");
 export const fetchActivity = () => apiFetch<ActivityItem[]>("/api/activity");
 export const fetchKeeper = () => apiFetch<KeeperStatus>("/api/keeper");
+
+/* ─────────── OWNER SHARES & WITHDRAW ─────────── */
+export type OwnerShares = {
+  owner: string;
+  vaults: {
+    [key: string]: {
+      name: string;
+      address: string;
+      shares: number;
+      sharesRaw: string;
+      deposited: number;
+    };
+  };
+};
+
+export type WithdrawResult = {
+  vaultKey: string;
+  vaultName: string;
+  status: "success" | "skipped" | "error";
+  shares?: number;
+  txHash: string | null;
+  reason?: string;
+  error?: string;
+  blockNumber?: number;
+  gasUsed?: string;
+};
+
+export type WithdrawAllResult = {
+  results: WithdrawResult[];
+};
+
+export const fetchOwnerShares = () =>
+  apiFetch<OwnerShares>("/api/owner-shares");
+
+export async function withdrawFromVault(
+  vaultKey: string,
+  adminKey: string,
+): Promise<WithdrawResult> {
+  const res = await fetch(`${API_BASE}/api/withdraw/${vaultKey}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function withdrawAll(adminKey: string): Promise<WithdrawAllResult> {
+  const res = await fetch(`${API_BASE}/api/withdraw-all`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+    },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
