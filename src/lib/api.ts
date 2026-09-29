@@ -252,3 +252,51 @@ async function postJsonWithAuth(path: string, adminKey: string, body: any) {
   }
   return res.json();
 }
+
+
+/* ─────────── ANALYTICS ─────────── */
+export type AnalyticsDay = {
+  date: string;
+  label: string;
+  deposits: number;
+  withdrawals: number;
+  depositAmount: number;
+  withdrawAmount: number;
+  newUsers: number;
+};
+
+export type AnalyticsFunnel = {
+  pending: number;
+  approved: number;
+  rejected: number;
+};
+
+export type AnalyticsTrend = {
+  label: string;
+  value: number;
+};
+
+export type VaultStat = {
+  name: string;
+  depositCount: number;
+  withdrawCount: number;
+  depositAmount: number;
+  withdrawAmount: number;
+};
+
+export type Analytics = {
+  daily: AnalyticsDay[];
+  funnel: AnalyticsFunnel;
+  tvlTrend: AnalyticsTrend[];
+  cumulativeUsers: AnalyticsTrend[];
+  vaultStats: VaultStat[];
+  summary: {
+    totalUsers: number;
+    totalRequests: number;
+    totalSnapshots: number;
+    avgDailyDeposit: number;
+    avgDailyWithdraw: number;
+  };
+};
+
+export const fetchAnalytics = () => apiFetch<Analytics>("/api/analytics");
