@@ -48,6 +48,9 @@ function Home() {
             <Link to="/social" className="text-sm text-muted-foreground hover:text-primary">
               Social
             </Link>
+            <Link to="/stats" className="text-sm text-muted-foreground hover:text-primary">
+              Stats
+            </Link>
             <Link
               to="/app"
               className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
@@ -79,6 +82,9 @@ function Home() {
               </Link>
               <Link to="/social" className="block text-sm text-muted-foreground hover:text-primary">
                 Social
+              </Link>
+              <Link to="/stats" className="block text-sm text-muted-foreground hover:text-primary">
+                Stats
               </Link>
               <Link
                 to="/app"
@@ -260,6 +266,11 @@ function Home() {
             <div>
               <h4 className="font-display text-sm font-semibold text-foreground">Resources</h4>
               <ul className="mt-4 space-y-2 text-sm">
+                <li>
+                  <Link to="/stats" className="text-muted-foreground hover:text-primary">
+                    Protocol Statistics
+                  </Link>
+                </li>
                 <li>
                   <a href="https://wallet.botchain.ai" target="_blank" rel="noreferrer" className="text-muted-foreground hover:text-primary">
                     Official Wallet
