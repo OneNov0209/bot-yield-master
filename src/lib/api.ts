@@ -138,3 +138,117 @@ export async function withdrawAll(adminKey: string): Promise<WithdrawAllResult> 
   }
   return res.json();
 }
+
+/* ─────────── ACCESS REQUEST & WHITELIST ─────────── */
+export type AccessStatus = {
+  wallet: string;
+  status: "none" | "pending" | "approved" | "rejected";
+  whitelisted: boolean;
+  requestId?: number;
+  submittedAt?: number;
+  reviewedAt?: number;
+  rejectReason?: string;
+  twitter?: string;
+  telegram?: string;
+};
+
+export type AccessRequest = {
+  id: number;
+  wallet: string;
+  twitter: string;
+  telegram: string;
+  tweet_url: string | null;
+  note: string | null;
+  status: "pending" | "approved" | "rejected";
+  submitted_at: number;
+  reviewed_at: number | null;
+  reviewed_by: string | null;
+  reject_reason: string | null;
+};
+
+export type WhitelistEntry = {
+  wallet: string;
+  twitter: string | null;
+  telegram: string | null;
+  approved_at: number;
+  approved_by: string | null;
+  request_id: number | null;
+};
+
+export const fetchAccessStatus = (wallet: string) =>
+  apiFetch<AccessStatus>(`/api/access/status/${wallet}`);
+
+export const fetchWhitelistCheck = (wallet: string) =>
+  apiFetch<{ wallet: string; whitelisted: boolean }>(`/api/whitelist/check/${wallet}`);
+
+export async function submitAccessRequest(payload: {
+  wallet: string;
+  twitter: string;
+  telegram: string;
+  tweetUrl?: string;
+  note?: string;
+}): Promise<{ ok: boolean; requestId: number; status: string; message: string }> {
+  const res = await fetch(`${API_BASE}/api/access/request`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+  return data;
+}
+
+/* Admin endpoints */
+export const fetchPendingRequests = (adminKey: string) =>
+  fetchJsonWithAuth<{ count: number; requests: AccessRequest[] }>(
+    "/api/access/pending",
+    adminKey,
+  );
+
+export const fetchAllRequests = (adminKey: string) =>
+  fetchJsonWithAuth<{ count: number; requests: AccessRequest[] }>(
+    "/api/access/all",
+    adminKey,
+  );
+
+export const fetchWhitelistAll = (adminKey: string) =>
+  fetchJsonWithAuth<{ count: number; whitelist: WhitelistEntry[] }>(
+    "/api/whitelist/all",
+    adminKey,
+  );
+
+export async function approveRequest(id: number, adminKey: string) {
+  return postJsonWithAuth(`/api/access/${id}/approve`, adminKey, {});
+}
+
+export async function rejectRequest(id: number, adminKey: string, reason?: string) {
+  return postJsonWithAuth(`/api/access/${id}/reject`, adminKey, { reason });
+}
+
+/* Helper internal */
+async function fetchJsonWithAuth<T>(path: string, adminKey: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { "x-admin-key": adminKey },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function postJsonWithAuth(path: string, adminKey: string, body: any) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-admin-key": adminKey,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error ?? `HTTP ${res.status}`);
+  }
+  return res.json();
+}
