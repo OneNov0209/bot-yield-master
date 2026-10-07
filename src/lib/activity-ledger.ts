@@ -18,7 +18,7 @@ export const DEPOSITED_EVENT = parseAbiItem(
   "event Deposited(address indexed user, uint256 amount, uint256 shares)"
 );
 export const WITHDRAWN_EVENT = parseAbiItem(
-  "event Withdrawn(address indexed user, uint256 amount, uint256 shares)"
+  "event Withdrawn(address indexed user, uint256 amount, uint256 profit, uint256 fee)"
 );
 
 export const VAULT_EVENTS_ABI = [DEPOSITED_EVENT, WITHDRAWN_EVENT] as const;
